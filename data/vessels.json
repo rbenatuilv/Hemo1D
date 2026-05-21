@@ -1,0 +1,128 @@
+{
+    "BAS": {
+        "length": 1.28,
+        "initial_area": 0.0740,
+        "beta_coeff": 0.1451e7,
+        "left_bound": "inflow",
+        "right_bound": "branch"
+    },
+    "L-PCA_I": {
+        "length": 1.3212,
+        "initial_area": 0.0347,
+        "beta_coeff": 0.0497e7,
+        "left_bound": "branch",
+        "right_bound": "branch"
+    },
+    "L-PCA_II": {
+        "length": 3.0909,
+        "initial_area": 0.0338,
+        "beta_coeff": 0.0497e7,
+        "left_bound": "branch",
+        "right_bound": "outflow"
+    },
+    "L-PCommA": {
+        "length": 1.1713,
+        "initial_area": 0.0256,
+        "beta_coeff": 0.0426e7,
+        "left_bound": "branch",
+        "right_bound": "branch"
+    }, 
+    "L-ICA_I": {
+        "length": 4.2887,
+        "initial_area": 0.1252,
+        "beta_coeff": 0.1887e7,
+        "left_bound": "branch",
+        "right_bound": "inflow"
+    },
+    "L-ICA_II": {
+        "length": 0.4203,
+        "initial_area": 0.0756,
+        "beta_coeff": 0.0733e7,
+        "left_bound": "branch",
+        "right_bound": "branch"
+    },
+    "L-ACA_I": {
+        "length": 3.0665,
+        "initial_area": 0.0288,
+        "beta_coeff": 0.0452e7,
+        "left_bound": "branch",
+        "right_bound": "branch"
+    },
+    "L-MCA": {
+        "length": 4.4854,
+        "initial_area": 0.0580,
+        "beta_coeff": 0.0642e7,
+        "left_bound": "branch",
+        "right_bound": "outflow"
+    },
+    "R-PCA_I": {
+        "length": 1.0012,
+        "initial_area": 0.0295,
+        "beta_coeff": 0.0458e7,
+        "left_bound": "branch",
+        "right_bound": "branch"
+    },
+    "R-PCA_II": {
+        "length": 2.5496,
+        "initial_area": 0.0331,
+        "beta_coeff": 0.0485e7,
+        "left_bound": "branch",
+        "right_bound": "outflow"
+    },
+    "R-PCommA": {
+        "length": 1.8936,
+        "initial_area": 0.0301,
+        "beta_coeff": 0.0463e7,
+        "left_bound": "branch",
+        "right_bound": "branch"
+    },
+    "R-ICA_I": {
+        "length": 4.8650,
+        "initial_area": 0.1260,
+        "beta_coeff": 0.1893e7,
+        "left_bound": "branch",
+        "right_bound": "inflow"
+    },
+    "R-ICA_II": {
+        "length": 0.6961,
+        "initial_area": 0.0800,
+        "beta_coeff": 0.0754e7,
+        "left_bound": "branch",
+        "right_bound": "branch"
+    },
+    "R-ACA_I": {
+        "length": 2.1127,
+        "initial_area": 0.0435,
+        "beta_coeff": 0.0556e7,
+        "left_bound": "branch",
+        "right_bound": "branch"
+    },
+    "R-MCA": {
+        "length": 3.3325,
+        "initial_area": 0.0623,
+        "beta_coeff": 0.0666e7,
+        "left_bound": "branch",
+        "right_bound": "outflow"
+    },
+    "ACA": {
+        "length": 0.4632,
+        "initial_area": 0.0214,
+        "beta_coeff": 0.0390e7,
+        "left_bound": "branch",
+        "right_bound": "branch"
+    },
+    "L-ACA_II": {
+        "length": 4.4019,
+        "initial_area": 0.0281,
+        "beta_coeff": 0.0447e7,
+        "left_bound": "branch",
+        "right_bound": "outflow"
+    },
+    "R-ACA_II": {
+        "length": 3.9169,
+        "initial_area": 0.0323,
+        "beta_coeff": 0.0479e7,
+        "left_bound": "branch",
+        "right_bound": "outflow"
+    }
+}

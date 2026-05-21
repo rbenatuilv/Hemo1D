@@ -1,0 +1,19 @@
+{
+  "num_steps": 400,
+  "solver": {
+    "cfl": 0.5773502691896257,
+    "dg_time_scheme": "rk2",
+    "dt": 5e-07,
+    "h": 0.03125,
+    "max_steps": 1000000,
+    "method": "cg",
+    "num_cells": null,
+    "poly_order": 1,
+    "record_every": 1
+  },
+  "source_path": "examples/configs/single_vessel.json",
+  "time": 0.0002,
+  "vessels": [
+    "vessel"
+  ]
+}

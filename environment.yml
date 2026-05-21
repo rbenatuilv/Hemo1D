@@ -1,0 +1,16 @@
+name: hemo1d-fenicsx
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - fenics-dolfinx=0.10.*
+  - mpich
+  - pyvista
+  - numpy
+  - scipy
+  - matplotlib
+  - pytest
+  - ruff
+  - mypy
+  - ipython
+  - tqdm

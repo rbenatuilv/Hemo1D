@@ -1,0 +1,40 @@
+{
+  "defaults": {
+    "blood": {
+      "rho": 1.06,
+      "mu": 0.035
+    },
+    "gamma_profile": 2.0,
+    "p0": 0.0,
+    "p_ext": 0.0
+  },
+  "vessels": {
+    "parent": {
+      "length": 2.0,
+      "area0": 0.126,
+      "beta": 606060.0,
+      "left_bound": "inflow",
+      "right_bound": "branch"
+    },
+    "daughter1": {
+      "length": 2.0,
+      "area0": 0.126,
+      "beta": 606060.0,
+      "left_bound": "branch",
+      "right_bound": "outflow"
+    },
+    "daughter2": {
+      "length": 2.0,
+      "area0": 0.126,
+      "beta": 606060.0,
+      "left_bound": "branch",
+      "right_bound": "outflow"
+    }
+  },
+  "bifurcations": {
+    "parent_split": {
+      "branches": ["parent", "daughter1", "daughter2"],
+      "positions": ["right", "left", "left"]
+    }
+  }
+}
