@@ -6,7 +6,8 @@
         },
         "gamma_profile": 2.0,
         "p0": 0.0,
-        "p_ext": 0.0
+        "p_ext": 0.0,
+        "gamma_pressure_loss": 0.0
     },
     "vessels": {
         "BAS": {

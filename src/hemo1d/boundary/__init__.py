@@ -1,5 +1,5 @@
 from hemo1d.boundary.base import BoundaryCondition
-from hemo1d.boundary.characteristic import (
+from hemo1d.boundary.external import (
     NonReflectingBoundary,
     PrescribedAreaBoundary,
     PrescribedFlowBoundary,

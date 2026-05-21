@@ -73,6 +73,7 @@ def build_vascular_network(
             parent=bifurcation.parent,
             daughter1=bifurcation.daughter1,
             daughter2=bifurcation.daughter2,
+            angles=bifurcation.angles,
         )
         for bifurcation in config.bifurcations
     ]
@@ -98,6 +99,7 @@ def make_physics(vessel: VesselConfig) -> Hemo1DPhysics:
             gamma_profile=vessel.gamma_profile,
             p0=vessel.p0,
             p_ext=vessel.p_ext,
+            gamma_pressure_loss=vessel.gamma_pressure_loss,
         ),
         NP_BACKEND,
     )

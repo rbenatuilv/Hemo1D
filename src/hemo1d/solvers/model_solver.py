@@ -164,18 +164,21 @@ class NetworkSolver:
                 endpoint_data=parent_vessel.endpoint_data(bifurcation.parent.side),
                 side=bifurcation.parent.side,
                 name=bifurcation.parent.label(),
+                angle=bifurcation.angles[0],
             ),
             daughter1=JunctionEndpointData(
                 physics=daughter1_vessel.physics,
                 endpoint_data=daughter1_vessel.endpoint_data(bifurcation.daughter1.side),
                 side=bifurcation.daughter1.side,
                 name=bifurcation.daughter1.label(),
+                angle=bifurcation.angles[1],
             ),
             daughter2=JunctionEndpointData(
                 physics=daughter2_vessel.physics,
                 endpoint_data=daughter2_vessel.endpoint_data(bifurcation.daughter2.side),
                 side=bifurcation.daughter2.side,
                 name=bifurcation.daughter2.label(),
+                angle=bifurcation.angles[2],
             ),
         )
 
