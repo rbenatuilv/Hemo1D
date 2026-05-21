@@ -31,6 +31,7 @@ class JunctionEndpointData:
     endpoint_data: EndpointData
     side: EndpointSide
     name: str
+    angle: float | None = None
 
 
 @dataclass(frozen=True)
@@ -177,6 +178,48 @@ def _total_pressure_gradient(
     return dP_dA + dK_dA, dK_dQ
 
 
+def _pressure_loss_term(
+    physics: Hemo1DPhysics,
+    area: float,
+    flow_rate: float,
+    angle: float | None,
+) -> float:
+    """
+    Pressure loss term for a junction with angle/losses.
+    """
+    if angle is None:
+        return 0.0
+
+    gamma = physics.params.gamma_pressure
+    if gamma == 0.0:
+        return 0.0
+
+    return gamma * flow_rate * abs(flow_rate) / area**2 * np.sqrt(2.0 * (1.0 - np.cos(angle)))
+
+
+def _d_pressure_loss_term_gradient(
+    physics: Hemo1DPhysics,
+    area: float,
+    flow_rate: float,
+    angle: float | None,
+) -> tuple[float, float]:
+    """
+    Gradient of the pressure loss term with respect to (A, Q).
+    """
+    if angle is None:
+        return 0.0, 0.0
+
+    gamma = physics.params.gamma_pressure
+    if gamma == 0.0:
+        return 0.0, 0.0
+
+    common_factor = gamma * abs(flow_rate) / area**2 * np.sqrt(2.0 * (1.0 - np.cos(angle)))
+
+    d_loss_dA = -2.0 * common_factor * flow_rate / area
+    d_loss_dQ = 2.0 * common_factor
+
+    return d_loss_dA, d_loss_dQ
+
 class BifurcationJunctionResidual:
     """
     Residual of the 6-equation bifurcation system.
@@ -309,8 +352,18 @@ class BifurcationJunctionResidual:
         s3 = _mass_sign(self.data.daughter2.side)
 
         residual[0] = s1 * Q_p + s2 * Q_d1 + s3 * Q_d2
-        residual[1] = ptot_p - ptot_d1
-        residual[2] = ptot_p - ptot_d2
+        residual[1] = ptot_p - ptot_d1 - _pressure_loss_term(
+            physics_d1,
+            A_d1,
+            Q_d1,
+            self.data.daughter1.angle,
+        )
+        residual[2] = ptot_p - ptot_d2 - _pressure_loss_term(
+            physics_d2,
+            A_d2,
+            Q_d2,
+            self.data.daughter2.angle,
+        )
 
         residual[3] = float(self._l_parent @ U_p - self._l_parent @ self._cc_parent)
         residual[4] = float(self._l_daughter1 @ U_d1 - self._l_daughter1 @ self._cc_daughter1)
@@ -370,6 +423,19 @@ class BifurcationJunctionResidual:
         s2 = _mass_sign(self.data.daughter1.side)
         s3 = _mass_sign(self.data.daughter2.side)
 
+        dF2_d1 = _d_pressure_loss_term_gradient(
+            physics_d1,
+            A_d1,
+            Q_d1,
+            self.data.daughter1.angle,
+        )
+        dF_d2 = _d_pressure_loss_term_gradient(
+            physics_d2,
+            A_d2,
+            Q_d2,
+            self.data.daughter2.angle,
+        )
+
         # R0 = s1 Q_p + s2 Q_d1 + s3 Q_d2
         J[0, 1] = s1
         J[0, 3] = s2
@@ -378,14 +444,14 @@ class BifurcationJunctionResidual:
         # R1 = Ptot_p - Ptot_d1
         J[1, 0] = dptot_p_dA
         J[1, 1] = dptot_p_dQ
-        J[1, 2] = -dptot_d1_dA
-        J[1, 3] = -dptot_d1_dQ
+        J[1, 2] = -dptot_d1_dA - dF2_d1[0]
+        J[1, 3] = -dptot_d1_dQ - dF2_d1[1]
 
         # R2 = Ptot_p - Ptot_d2
         J[2, 0] = dptot_p_dA
         J[2, 1] = dptot_p_dQ
-        J[2, 4] = -dptot_d2_dA
-        J[2, 5] = -dptot_d2_dQ
+        J[2, 4] = -dptot_d2_dA - dF_d2[0]
+        J[2, 5] = -dptot_d2_dQ - dF_d2[1]
 
         # R3 = l_p^T U_p - const
         J[3, 0] = self._l_parent[0]

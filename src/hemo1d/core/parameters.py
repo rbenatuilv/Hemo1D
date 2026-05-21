@@ -59,6 +59,9 @@ class ModelParameters:
 
     p_ext:
         External pressure.
+
+    gamma_pressure_loss:
+        Coefficient of the pressure loss on junctions.
     """
 
     blood: BloodParameters
@@ -67,6 +70,7 @@ class ModelParameters:
     gamma_profile: float = 2.0
     p0: float = 0.0
     p_ext: float = 0.0
+    gamma_pressure_loss: float = 0.0
 
     @property
     def rho(self) -> float:
@@ -91,6 +95,10 @@ class ModelParameters:
     @property
     def gamma(self) -> float:
         return self.gamma_profile
+
+    @property
+    def gamma_pressure(self) -> float:
+        return self.gamma_pressure_loss
 
     @property
     def alpha(self) -> float:

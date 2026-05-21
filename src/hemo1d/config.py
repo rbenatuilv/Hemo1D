@@ -31,6 +31,7 @@ class VesselConfig:
     gamma_profile: float = 2.0
     p0: float = 0.0
     p_ext: float = 0.0
+    gamma_pressure_loss: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,7 @@ class JunctionConfig:
     parent: NetworkEndpoint
     daughter1: NetworkEndpoint
     daughter2: NetworkEndpoint
+    angles: tuple[float | None, float | None, float | None] = (None, None, None)
 
     def endpoints(self) -> tuple[NetworkEndpoint, NetworkEndpoint, NetworkEndpoint]:
         return self.parent, self.daughter1, self.daughter2
@@ -234,6 +236,9 @@ def _parse_vessels(data: Any, *, defaults: dict[str, Any]) -> dict[str, VesselCo
             gamma_profile=float(raw.get("gamma_profile", defaults.get("gamma_profile", 2.0))),
             p0=float(raw.get("p0", defaults.get("p0", 0.0))),
             p_ext=float(raw.get("p_ext", defaults.get("p_ext", 0.0))),
+            gamma_pressure_loss=float(
+                raw.get("gamma_pressure_loss", raw.get("gamma_pressure", defaults.get("gamma_pressure_loss", 0.0)))
+            ),
         )
 
     return vessels
@@ -265,6 +270,7 @@ def _parse_bifurcations(data: Any) -> list[JunctionConfig]:
             parent = NetworkEndpoint(str(branches[0]), parse_endpoint_side(positions[0]))
             daughter1 = NetworkEndpoint(str(branches[1]), parse_endpoint_side(positions[1]))
             daughter2 = NetworkEndpoint(str(branches[2]), parse_endpoint_side(positions[2]))
+            angles = _parse_angles(raw.get("angles"), junction_id=junction_id)
         else:
             parent = _parse_endpoint_ref(raw["parent"])
             daughters = raw.get("daughters", [raw.get("daughter1"), raw.get("daughter2")])
@@ -272,6 +278,7 @@ def _parse_bifurcations(data: Any) -> list[JunctionConfig]:
                 raise ValueError(f"Bifurcation {junction_id!r} must have two daughters.")
             daughter1 = _parse_endpoint_ref(daughters[0])
             daughter2 = _parse_endpoint_ref(daughters[1])
+            angles = _parse_angles(raw.get("angles"), junction_id=junction_id)
 
         bifurcations.append(
             JunctionConfig(
@@ -279,6 +286,7 @@ def _parse_bifurcations(data: Any) -> list[JunctionConfig]:
                 parent=parent,
                 daughter1=daughter1,
                 daughter2=daughter2,
+                angles=angles,
             )
         )
 
@@ -314,3 +322,26 @@ def _optional_label(value: Any) -> str | None:
         return None
     label = str(value).strip().lower()
     return label or None
+
+
+def _parse_angles(value: Any, *, junction_id: str) -> tuple[float | None, float | None, float | None]:
+    if value is None:
+        return (None, None, None)
+
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        raise ValueError(f"Bifurcation {junction_id!r} must define exactly three angles.")
+
+    parsed: list[float | None] = []
+    for angle in value:
+        if angle is None:
+            parsed.append(None)
+            continue
+
+        text = str(angle).strip().lower()
+        if text in {"none", "null", ""}:
+            parsed.append(None)
+            continue
+
+        parsed.append(float(angle))
+
+    return parsed[0], parsed[1], parsed[2]

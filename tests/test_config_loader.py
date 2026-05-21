@@ -16,6 +16,7 @@ def test_load_network_config_combined_json(tmp_path):
                         "length": 2.0,
                         "area0": 0.126,
                         "beta": 1.0,
+                        "gamma_pressure_loss": 0.25,
                         "right_bound": "branch",
                         "left_bound": "inflow",
                     },
@@ -34,10 +35,14 @@ def test_load_network_config_combined_json(tmp_path):
                         "right_bound": "outflow",
                     },
                 },
+                "defaults": {
+                    "gamma_pressure_loss": 0.5,
+                },
                 "bifurcations": {
                     "bif": {
                         "branches": ["parent", "d1", "d2"],
                         "positions": ["right", "left", "left"],
+                        "angles": ["None", 0.2, 0.4],
                     }
                 },
             }
@@ -49,6 +54,9 @@ def test_load_network_config_combined_json(tmp_path):
     assert len(config.vessels) == 3
     assert len(config.bifurcations) == 1
     assert config.bifurcations[0].parent.side == EndpointSide.RIGHT
+    assert config.bifurcations[0].angles == (None, 0.2, 0.4)
+    assert config.vessels["parent"].gamma_pressure_loss == 0.25
+    assert config.vessels["d1"].gamma_pressure_loss == 0.5
     assert len(config.external_endpoints()) == 3
 
 

@@ -29,6 +29,7 @@ class Bifurcation:
     parent: NetworkEndpoint
     daughter1: NetworkEndpoint
     daughter2: NetworkEndpoint
+    angles: tuple[float | None, float | None, float | None] = (None, None, None)
 
     def endpoints(self) -> tuple[NetworkEndpoint, NetworkEndpoint, NetworkEndpoint]:
         return self.parent, self.daughter1, self.daughter2
