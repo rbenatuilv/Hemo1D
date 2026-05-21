@@ -4,12 +4,6 @@ from collections.abc import Callable
 
 import numpy as np
 
-from hemo1d.boundary.characteristic import (
-    PrescribedAreaBoundary,
-    PrescribedFlowBoundary,
-    PrescribedPressureBoundary,
-)
-
 
 def create_sinusoidal_inflow(
     amplitude: float,
@@ -80,7 +74,4 @@ __all__ = [
     "create_positive_sine_inflow",
     "create_pulsatile_inflow",
     "create_sinusoidal_inflow",
-    "PrescribedAreaBoundary",
-    "PrescribedFlowBoundary",
-    "PrescribedPressureBoundary",
 ]

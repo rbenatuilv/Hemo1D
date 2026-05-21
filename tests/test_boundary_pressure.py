@@ -1,6 +1,6 @@
 import pytest
 
-from hemo1d.boundary import PrescribedPressureBoundary
+from hemo1d.boundary.external import PrescribedPressureBoundary
 from hemo1d.core.backend import NP_BACKEND
 from hemo1d.core.parameters import BloodParameters, ModelParameters, VesselParameters
 from hemo1d.core.physics import Hemo1DPhysics
