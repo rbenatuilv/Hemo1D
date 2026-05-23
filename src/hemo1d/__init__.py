@@ -22,6 +22,7 @@ from hemo1d.boundary import (
     create_positive_sine_inflow,
     create_pulsatile_inflow,
     create_sinusoidal_inflow,
+    create_periodic_positive_sine_inflow,
 )
 from hemo1d.config import (
     BloodConfig,
@@ -72,6 +73,7 @@ __all__ = [
     "create_positive_sine_inflow",
     "create_pulsatile_inflow",
     "create_sinusoidal_inflow",
+    "create_periodic_positive_sine_inflow",
     "load_from_config",
     "load_json",
     "load_network_config",

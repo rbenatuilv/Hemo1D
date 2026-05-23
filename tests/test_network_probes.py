@@ -13,7 +13,7 @@ from hemo1d.solvers.cg.factory import create_cg_vessel
 from hemo1d.solvers.model_solver import NetworkSolver
 from hemo1d.solvers.vessel import Vessel
 from hemo1d.topology import (
-    Bifurcation,
+    Junction,
     NetworkEndpoint,
     VascularNetwork,
 )
@@ -48,10 +48,12 @@ def make_network() -> VascularNetwork:
     d1 = make_vessel("daughter1", make_physics())
     d2 = make_vessel("daughter2", make_physics())
 
-    bifurcation = Bifurcation(
-        parent=NetworkEndpoint("parent", EndpointSide.RIGHT),
-        daughter1=NetworkEndpoint("daughter1", EndpointSide.LEFT),
-        daughter2=NetworkEndpoint("daughter2", EndpointSide.LEFT),
+    junction = Junction(
+        endpoints=(
+            NetworkEndpoint("parent", EndpointSide.RIGHT),
+            NetworkEndpoint("daughter1", EndpointSide.LEFT),
+            NetworkEndpoint("daughter2", EndpointSide.LEFT),
+        )
     )
 
     return VascularNetwork(
@@ -60,7 +62,7 @@ def make_network() -> VascularNetwork:
             "daughter1": d1,
             "daughter2": d2,
         },
-        bifurcations=[bifurcation],
+        junctions=[junction],
         external_boundaries={
             NetworkEndpoint("parent", EndpointSide.LEFT): PrescribedFlowBoundary(lambda t: 0.0),
             NetworkEndpoint("daughter1", EndpointSide.RIGHT): NonReflectingBoundary(),

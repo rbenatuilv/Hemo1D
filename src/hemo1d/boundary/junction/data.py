@@ -33,36 +33,34 @@ class JunctionEndpointData:
 
 
 @dataclass(frozen=True)
-class BifurcationJunctionData:
-    """
-    Data for a simple 1-to-2 bifurcation.
+class JunctionData:
+    """Data for one two- or three-vessel junction."""
 
-    Convention:
-        parent.RIGHT -> junction
-        daughter1.LEFT -> junction
-        daughter2.LEFT -> junction
+    endpoints: tuple[JunctionEndpointData, ...]
 
-    The implementation itself uses the endpoint side, so the orientation is not
-    hard-coded in the compatibility helper.
-    """
-
-    parent: JunctionEndpointData
-    daughter1: JunctionEndpointData
-    daughter2: JunctionEndpointData
+    def __post_init__(self) -> None:
+        endpoints = tuple(self.endpoints)
+        if len(endpoints) not in (2, 3):
+            raise ValueError("JunctionData must contain exactly 2 or 3 endpoints.")
+        object.__setattr__(self, "endpoints", endpoints)
 
 
 @dataclass(frozen=True)
-class BifurcationSolution:
-    """Solved endpoint states at a bifurcation."""
+class JunctionSolution:
+    """Solved endpoint states at a two- or three-vessel junction."""
 
-    parent: BoundaryState
-    daughter1: BoundaryState
-    daughter2: BoundaryState
+    endpoint_states: tuple[BoundaryState, ...]
     newton_result: NewtonResult
+
+    def __post_init__(self) -> None:
+        states = tuple(self.endpoint_states)
+        if len(states) not in (2, 3):
+            raise ValueError("JunctionSolution must contain exactly 2 or 3 endpoint states.")
+        object.__setattr__(self, "endpoint_states", states)
 
 
 __all__ = [
-    "BifurcationJunctionData",
-    "BifurcationSolution",
+    "JunctionData",
     "JunctionEndpointData",
+    "JunctionSolution",
 ]

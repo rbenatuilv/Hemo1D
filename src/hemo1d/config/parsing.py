@@ -58,7 +58,7 @@ def parse_vessels(data: Any, *, defaults: dict[str, Any]) -> dict[str, VesselCon
     return vessels
 
 
-def parse_bifurcations(data: Any) -> list[JunctionConfig]:
+def parse_junctions(data: Any) -> list[JunctionConfig]:
     if data in ({}, [], None):
         return []
 
@@ -67,44 +67,50 @@ def parse_bifurcations(data: Any) -> list[JunctionConfig]:
     elif isinstance(data, list):
         items = ((required_string(item, "id"), item) for item in data)
     else:
-        raise ValueError("'bifurcations'/'junctions' must be a JSON object or list.")
+        raise ValueError("'junctions' must be a JSON object or list.")
 
-    bifurcations: list[JunctionConfig] = []
+    junctions: list[JunctionConfig] = []
     for junction_id, raw in items:
         if not isinstance(raw, dict):
-            raise ValueError(f"Bifurcation {junction_id!r} must be a JSON object.")
+            raise ValueError(f"Junction {junction_id!r} must be a JSON object.")
 
         if "branches" in raw:
             branches = raw["branches"]
             positions = raw["positions"]
-            if len(branches) != 3 or len(positions) != 3:
-                raise ValueError(
-                    f"Bifurcation {junction_id!r} must have exactly three branches/positions."
-                )
-            parent = NetworkEndpoint(str(branches[0]), parse_endpoint_side(positions[0]))
-            daughter1 = NetworkEndpoint(str(branches[1]), parse_endpoint_side(positions[1]))
-            daughter2 = NetworkEndpoint(str(branches[2]), parse_endpoint_side(positions[2]))
-            angles = parse_angles(raw.get("angles"), junction_id=junction_id)
+            if len(branches) not in (2, 3) or len(positions) != len(branches):
+                raise ValueError(f"Junction {junction_id!r} must have 2 or 3 branches/positions.")
+            endpoints = tuple(
+                NetworkEndpoint(str(branch), parse_endpoint_side(position))
+                for branch, position in zip(branches, positions, strict=True)
+            )
+            angles = parse_angles(
+                raw.get("angles"),
+                junction_id=junction_id,
+                count=len(endpoints),
+            )
+        elif "endpoints" in raw:
+            if not isinstance(raw["endpoints"], (list, tuple)):
+                raise ValueError(f"Junction {junction_id!r} endpoints must be a list.")
+            endpoints = tuple(parse_endpoint_ref(endpoint) for endpoint in raw["endpoints"])
+            angles = parse_angles(
+                raw.get("angles"),
+                junction_id=junction_id,
+                count=len(endpoints),
+            )
         else:
-            parent = parse_endpoint_ref(raw["parent"])
-            daughters = raw.get("daughters", [raw.get("daughter1"), raw.get("daughter2")])
-            if len(daughters) != 2:
-                raise ValueError(f"Bifurcation {junction_id!r} must have two daughters.")
-            daughter1 = parse_endpoint_ref(daughters[0])
-            daughter2 = parse_endpoint_ref(daughters[1])
-            angles = parse_angles(raw.get("angles"), junction_id=junction_id)
+            raise ValueError(
+                f"Junction {junction_id!r} must define branches/positions or endpoints."
+            )
 
-        bifurcations.append(
+        junctions.append(
             JunctionConfig(
                 junction_id=str(junction_id),
-                parent=parent,
-                daughter1=daughter1,
-                daughter2=daughter2,
+                endpoints=endpoints,
                 angles=angles,
             )
         )
 
-    return bifurcations
+    return junctions
 
 
 def parse_endpoint_ref(data: Any) -> NetworkEndpoint:
@@ -142,12 +148,13 @@ def parse_angles(
     value: Any,
     *,
     junction_id: str,
-) -> tuple[float | None, float | None, float | None]:
+    count: int = 3,
+) -> tuple[float | None, ...]:
     if value is None:
-        return (None, None, None)
+        return (None,) * count
 
-    if not isinstance(value, (list, tuple)) or len(value) != 3:
-        raise ValueError(f"Bifurcation {junction_id!r} must define exactly three angles.")
+    if not isinstance(value, (list, tuple)) or len(value) != count:
+        raise ValueError(f"Junction {junction_id!r} must define exactly {count} angles.")
 
     parsed: list[float | None] = []
     for angle in value:
@@ -162,14 +169,14 @@ def parse_angles(
 
         parsed.append(float(angle))
 
-    return parsed[0], parsed[1], parsed[2]
+    return tuple(parsed)
 
 
 __all__ = [
     "optional_label",
     "parse_angles",
-    "parse_bifurcations",
     "parse_endpoint_ref",
+    "parse_junctions",
     "parse_vessels",
     "pick",
     "required_string",

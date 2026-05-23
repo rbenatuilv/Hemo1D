@@ -23,20 +23,20 @@ results.plot_probes("examples/outputs/single_vessel_dg/plots")
 
 ## Config Files
 
-Network JSON files contain vessels plus optional bifurcations:
+Network JSON files contain vessels plus optional junctions:
 
 ```json
 {
   "vessels": {
-    "parent": {
+    "upstream": {
       "length": 2.0,
       "area0": 0.126,
       "beta": 606060.0,
       "left_bound": "inflow",
-      "right_bound": "branch"
+      "right_bound": "coupling"
     }
   },
-  "bifurcations": {}
+  "junctions": {}
 }
 ```
 
@@ -80,6 +80,7 @@ print(study.observed_orders)
 ```bash
 python examples/main_example.py
 python examples/single_vessel.py --method dg
+python examples/stent_vessel_coupling.py --method dg
 python examples/three_vessel.py --method dg
 python examples/real_network.py --method cg
 python examples/convergence_single.py --method dg

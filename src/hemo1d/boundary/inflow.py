@@ -43,6 +43,26 @@ def create_positive_sine_inflow(
     return q
 
 
+def create_periodic_positive_sine_inflow(
+    amplitude: float,
+    duration: float,
+    period: float,
+) -> Callable[[float], float]:
+    """Create a periodic positive half-sine flow-rate function."""
+
+    if duration <= 0.0:
+        raise ValueError("duration must be positive.")
+
+    def q(t: float) -> float:
+        t_mod = t % period
+        if 0.0 <= t_mod <= duration:
+            return float(amplitude * np.sin(np.pi * t_mod / duration))
+        else:
+            return 0.0
+
+    return q
+
+
 def create_pulsatile_inflow(
     systolic_amplitude: float,
     systolic_duration: float,
@@ -74,4 +94,5 @@ __all__ = [
     "create_positive_sine_inflow",
     "create_pulsatile_inflow",
     "create_sinusoidal_inflow",
+    "create_periodic_positive_sine_inflow",
 ]

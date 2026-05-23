@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from hemo1d.config.models import NetworkConfig
-from hemo1d.config.parsing import parse_bifurcations, parse_vessels
+from hemo1d.config.parsing import parse_junctions, parse_vessels
 from hemo1d.config.validation import validate_network_config
 
 
@@ -14,30 +14,31 @@ def load_network_config(path: str | Path) -> NetworkConfig:
     Load a network configuration from JSON.
 
     Supported forms:
-        - a combined file with top-level ``vessels`` and optional
-          ``bifurcations`` or ``junctions`` keys;
+        - a combined file with top-level ``vessels`` and optional ``junctions`` key;
         - the existing project ``vessels.json`` shape, optionally paired with a
-          sibling ``bifurcations.json`` file.
+          sibling ``junctions.json`` file.
     """
 
     config_path = Path(path)
     data = load_json_object(config_path)
 
     if "vessels" in data:
+        if "bifurcations" in data:
+            raise ValueError("Use 'junctions' instead of obsolete 'bifurcations'.")
         vessel_data = data["vessels"]
-        bifurcation_data = data.get("bifurcations", data.get("junctions", {}))
+        junction_data = data.get("junctions", {})
         defaults = data.get("defaults", {})
     else:
         vessel_data = data
-        bifurcation_data = load_sibling_bifurcations(config_path)
+        junction_data = load_sibling_junctions(config_path)
         defaults = {}
 
     vessels = parse_vessels(vessel_data, defaults=defaults)
-    bifurcations = parse_bifurcations(bifurcation_data)
+    junctions = parse_junctions(junction_data)
 
     config = NetworkConfig(
         vessels=vessels,
-        bifurcations=bifurcations,
+        junctions=junctions,
         source_path=config_path,
     )
     validate_network_config(config)
@@ -57,8 +58,8 @@ def load_json_object(path: Path) -> dict[str, Any]:
     return data
 
 
-def load_sibling_bifurcations(path: Path) -> Any:
-    sibling = path.with_name("bifurcations.json")
+def load_sibling_junctions(path: Path) -> Any:
+    sibling = path.with_name("junctions.json")
     if sibling.exists():
         return load_json_object(sibling)
     return {}
@@ -67,5 +68,5 @@ def load_sibling_bifurcations(path: Path) -> Any:
 __all__ = [
     "load_json_object",
     "load_network_config",
-    "load_sibling_bifurcations",
+    "load_sibling_junctions",
 ]

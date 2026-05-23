@@ -5,7 +5,7 @@ A 1D hemodynamic network solver using Continuous Galerkin and Discontinuous Gale
 ## Features
 
 - **1D hemodynamic modeling**: Solves hyperbolic conservation laws for blood flow in vessels.
-- **Network support**: Handles complex vascular networks with bifurcations and junctions.
+- **Network support**: Handles complex vascular networks with two- and three-vessel junctions.
 - **Continuous Galerkin (CG) and Discontinuous Galerkin (DG) discretizations**: Stable, accurate FEM formulations with Taylor-Galerkin and Lax-Friedrichs time stepping.
 - **Built-in analysis tools**:
   - Richardson error estimation for convergence studies.
@@ -96,6 +96,7 @@ All examples are in the `examples/` directory. Run them with:
 ```bash
 python examples/main_example.py
 python examples/single_vessel.py
+python examples/stent_vessel_coupling.py
 python examples/three_vessel.py
 python examples/convergence_single.py
 python examples/convergence_three_vessel.py

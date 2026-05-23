@@ -3,19 +3,19 @@ from hemo1d.boundary.junction.characteristics import (
     outgoing_left_eigenvector,
 )
 from hemo1d.boundary.junction.data import (
-    BifurcationJunctionData,
-    BifurcationSolution,
+    JunctionData,
     JunctionEndpointData,
+    JunctionSolution,
 )
-from hemo1d.boundary.junction.residual import BifurcationJunctionResidual
-from hemo1d.boundary.junction.solver import BifurcationJunctionSolver
+from hemo1d.boundary.junction.residual import JunctionResidual
+from hemo1d.boundary.junction.solver import JunctionSolver
 
 __all__ = [
-    "BifurcationJunctionData",
-    "BifurcationJunctionResidual",
-    "BifurcationJunctionSolver",
-    "BifurcationSolution",
+    "JunctionData",
     "JunctionEndpointData",
+    "JunctionResidual",
+    "JunctionSolver",
+    "JunctionSolution",
     "compatibility_target",
     "outgoing_left_eigenvector",
 ]

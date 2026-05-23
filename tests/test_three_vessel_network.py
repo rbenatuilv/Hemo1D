@@ -14,7 +14,7 @@ from hemo1d.solvers.cg.factory import create_cg_vessel
 from hemo1d.solvers.model_solver import NetworkSolver
 from hemo1d.solvers.vessel import Vessel
 from hemo1d.topology import (
-    Bifurcation,
+    Junction,
     NetworkEndpoint,
     VascularNetwork,
 )
@@ -64,10 +64,12 @@ def make_rest_network(num_cells: int = 16) -> VascularNetwork:
     daughter1 = make_vessel("daughter1", d1_physics, num_cells=num_cells)
     daughter2 = make_vessel("daughter2", d2_physics, num_cells=num_cells)
 
-    bifurcation = Bifurcation(
-        parent=NetworkEndpoint("parent", EndpointSide.RIGHT),
-        daughter1=NetworkEndpoint("daughter1", EndpointSide.LEFT),
-        daughter2=NetworkEndpoint("daughter2", EndpointSide.LEFT),
+    junction = Junction(
+        endpoints=(
+            NetworkEndpoint("parent", EndpointSide.RIGHT),
+            NetworkEndpoint("daughter1", EndpointSide.LEFT),
+            NetworkEndpoint("daughter2", EndpointSide.LEFT),
+        )
     )
 
     return VascularNetwork(
@@ -76,7 +78,7 @@ def make_rest_network(num_cells: int = 16) -> VascularNetwork:
             "daughter1": daughter1,
             "daughter2": daughter2,
         },
-        bifurcations=[bifurcation],
+        junctions=[junction],
         external_boundaries={
             NetworkEndpoint("parent", EndpointSide.LEFT): PrescribedFlowBoundary(lambda t: 0.0),
             NetworkEndpoint("daughter1", EndpointSide.RIGHT): NonReflectingBoundary(),
@@ -149,10 +151,12 @@ def test_three_vessel_network_small_inlet_pulse_remains_finite():
         amp = 1.0e-4
         return amp * np.sin(np.pi * t / T) if 0.0 <= t <= T else 0.0
 
-    bifurcation = Bifurcation(
-        parent=NetworkEndpoint("parent", EndpointSide.RIGHT),
-        daughter1=NetworkEndpoint("daughter1", EndpointSide.LEFT),
-        daughter2=NetworkEndpoint("daughter2", EndpointSide.LEFT),
+    junction = Junction(
+        endpoints=(
+            NetworkEndpoint("parent", EndpointSide.RIGHT),
+            NetworkEndpoint("daughter1", EndpointSide.LEFT),
+            NetworkEndpoint("daughter2", EndpointSide.LEFT),
+        )
     )
 
     network = VascularNetwork(
@@ -161,7 +165,7 @@ def test_three_vessel_network_small_inlet_pulse_remains_finite():
             "daughter1": daughter1,
             "daughter2": daughter2,
         },
-        bifurcations=[bifurcation],
+        junctions=[junction],
         external_boundaries={
             NetworkEndpoint("parent", EndpointSide.LEFT): PrescribedFlowBoundary(q_in),
             NetworkEndpoint("daughter1", EndpointSide.RIGHT): NonReflectingBoundary(),

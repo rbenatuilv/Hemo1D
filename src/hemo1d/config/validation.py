@@ -27,22 +27,22 @@ def validate_network_config(config: NetworkConfig) -> None:
             raise ValueError(f"Vessel {vessel_id!r} blood viscosity must be non-negative.")
 
     seen: set[NetworkEndpoint] = set()
-    for bifurcation in config.bifurcations:
-        endpoints = bifurcation.endpoints()
-        if len(set(endpoints)) != 3:
-            raise ValueError(
-                f"Bifurcation {bifurcation.junction_id!r} must use three distinct endpoints."
-            )
+    for junction in config.junctions:
+        endpoints = junction.endpoints
+        if len(endpoints) not in (2, 3):
+            raise ValueError(f"Junction {junction.junction_id!r} must use 2 or 3 endpoints.")
+        if len(set(endpoints)) != len(endpoints):
+            raise ValueError(f"Junction {junction.junction_id!r} must use distinct endpoints.")
+        if len(junction.angles) != len(endpoints):
+            raise ValueError(f"Junction {junction.junction_id!r} angles must match endpoints.")
         for endpoint in endpoints:
             if endpoint.vessel_id not in config.vessels:
                 raise ValueError(
-                    f"Bifurcation {bifurcation.junction_id!r} references unknown "
+                    f"Junction {junction.junction_id!r} references unknown "
                     f"vessel {endpoint.vessel_id!r}."
                 )
             if endpoint in seen:
-                raise ValueError(
-                    f"Endpoint {endpoint.label()} appears in more than one bifurcation."
-                )
+                raise ValueError(f"Endpoint {endpoint.label()} appears in more than one junction.")
             seen.add(endpoint)
 
 

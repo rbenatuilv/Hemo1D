@@ -9,30 +9,30 @@ from hemo1d.solvers.vessel import Vessel
 
 
 @dataclass(frozen=True)
-class Bifurcation:
+class Junction:
     """
-    A 1-to-2 bifurcation.
+    A two- or three-vessel junction.
 
-    Each bifurcation connects exactly three vessel endpoints:
-
-        parent endpoint
-        daughter1 endpoint
-        daughter2 endpoint
-
-    The common orientation is:
-
-        parent.RIGHT -> daughter1.LEFT + daughter2.LEFT
-
-    but the endpoint sides are stored explicitly.
+    Endpoints are ordered. Endpoint 0 is the pressure reference used by the
+    junction residual.
     """
 
-    parent: NetworkEndpoint
-    daughter1: NetworkEndpoint
-    daughter2: NetworkEndpoint
-    angles: tuple[float | None, float | None, float | None] = (None, None, None)
+    endpoints: tuple[NetworkEndpoint, ...]
+    angles: tuple[float | None, ...] | None = None
 
-    def endpoints(self) -> tuple[NetworkEndpoint, NetworkEndpoint, NetworkEndpoint]:
-        return self.parent, self.daughter1, self.daughter2
+    def __post_init__(self) -> None:
+        endpoints = tuple(self.endpoints)
+        if len(endpoints) not in (2, 3):
+            raise ValueError("Junction must connect exactly 2 or 3 endpoints.")
+        if len(set(endpoints)) != len(endpoints):
+            raise ValueError("Junction endpoints must be distinct.")
+
+        angles = (None,) * len(endpoints) if self.angles is None else tuple(self.angles)
+        if len(angles) != len(endpoints):
+            raise ValueError("Junction angles must match the number of endpoints.")
+
+        object.__setattr__(self, "endpoints", endpoints)
+        object.__setattr__(self, "angles", angles)
 
 
 @dataclass
@@ -43,32 +43,32 @@ class VascularNetwork:
     A single-vessel problem is represented as:
 
         1 vessel
-        0 bifurcations
+        0 junctions
         2 external boundaries
 
-    A three-vessel bifurcation is represented as:
+    A three-vessel junction is represented as:
 
         3 vessels
-        1 bifurcation
+        1 junction
         3 external boundaries
 
     A larger arterial tree is represented as:
 
         many vessels
-        many bifurcations
+        many junctions
         many external boundaries
     """
 
     vessels: dict[str, Vessel]
-    bifurcations: list[Bifurcation] = field(default_factory=list)
     external_boundaries: dict[NetworkEndpoint, BoundaryCondition] = field(default_factory=dict)
+    junctions: list[Junction] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.validate()
 
     def validate(self) -> None:
         self._validate_vessel_ids()
-        self._validate_bifurcation_endpoints()
+        self._validate_junction_endpoints()
         self._validate_external_boundary_endpoints()
         self._validate_no_duplicate_junction_endpoints()
         self._validate_no_endpoint_is_both_boundary_and_junction()
@@ -84,16 +84,15 @@ class VascularNetwork:
     def _validate_endpoint_exists(self, endpoint: NetworkEndpoint) -> None:
         if endpoint.vessel_id not in self.vessels:
             raise ValueError(
-                f"Endpoint {endpoint.label()} refers to unknown vessel "
-                f"{endpoint.vessel_id!r}."
+                f"Endpoint {endpoint.label()} refers to unknown vessel {endpoint.vessel_id!r}."
             )
 
         if endpoint.side not in (EndpointSide.LEFT, EndpointSide.RIGHT):
             raise ValueError(f"Invalid endpoint side for {endpoint!r}.")
 
-    def _validate_bifurcation_endpoints(self) -> None:
-        for bifurcation in self.bifurcations:
-            for endpoint in bifurcation.endpoints():
+    def _validate_junction_endpoints(self) -> None:
+        for junction in self.junctions:
+            for endpoint in junction.endpoints:
                 self._validate_endpoint_exists(endpoint)
 
     def _validate_external_boundary_endpoints(self) -> None:
@@ -103,8 +102,8 @@ class VascularNetwork:
     def _junction_endpoints(self) -> list[NetworkEndpoint]:
         endpoints: list[NetworkEndpoint] = []
 
-        for bifurcation in self.bifurcations:
-            endpoints.extend(bifurcation.endpoints())
+        for junction in self.junctions:
+            endpoints.extend(junction.endpoints)
 
         return endpoints
 
@@ -112,9 +111,7 @@ class VascularNetwork:
         endpoints = self._junction_endpoints()
 
         if len(endpoints) != len(set(endpoints)):
-            raise ValueError(
-                "At least one endpoint appears in more than one bifurcation."
-            )
+            raise ValueError("At least one endpoint appears in more than one junction.")
 
     def _validate_no_endpoint_is_both_boundary_and_junction(self) -> None:
         junction_endpoints = set(self._junction_endpoints())
@@ -125,8 +122,7 @@ class VascularNetwork:
         if overlap:
             labels = sorted(endpoint.label() for endpoint in overlap)
             raise ValueError(
-                "Endpoints cannot be both external boundaries and junction endpoints: "
-                f"{labels}."
+                f"Endpoints cannot be both external boundaries and junction endpoints: {labels}."
             )
 
     def endpoint_state_map_keys(self) -> set[NetworkEndpoint]:
@@ -135,8 +131,8 @@ class VascularNetwork:
         """
         keys = set(self.external_boundaries)
 
-        for bifurcation in self.bifurcations:
-            keys.update(bifurcation.endpoints())
+        for junction in self.junctions:
+            keys.update(junction.endpoints)
 
         return keys
 
