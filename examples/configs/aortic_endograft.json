@@ -1,0 +1,78 @@
+{
+  "defaults": {
+    "blood": {
+      "rho": 1.0,
+      "mu": 0.035
+    },
+    "gamma_profile": 9.0,
+    "p0": 0.0,
+    "p_ext": 0.0,
+    "gamma_pressure_loss": 2.0
+  },
+  "vessels": {
+    "upstream": {
+      "length": 5.0,
+      "area0": 1.13097,
+      "beta": 1181635.901,
+      "left_bound": "inflow",
+      "right_bound": "coupling"
+    },
+    "upstream_stent": {
+      "length": 5.0,
+      "area0": 1.13097,
+      "beta": 7089815.404,
+      "left_bound": "coupling",
+      "right_bound": "coupling"
+    },
+    "branch_stent_1": {
+      "length": 5.0,
+      "area0": 0.7854,
+      "beta": 7089815.404,
+      "left_bound": "coupling",
+      "right_bound": "coupling"
+    },
+    "branch_1": {
+      "length": 5.0,
+      "area0": 0.7854,
+      "beta": 1181635.901,
+      "left_bound": "coupling",
+      "right_bound": "outflow"
+    },
+    "branch_stent_2": {
+      "length": 5.0,
+      "area0": 0.50265,
+      "beta": 7089815.404,
+      "left_bound": "coupling",
+      "right_bound": "coupling"
+    },
+    "branch_2": {
+      "length": 5.0,
+      "area0": 0.50265,
+      "beta": 1181635.901,
+      "left_bound": "coupling",
+      "right_bound": "outflow"
+    }
+  },
+  "junctions": {
+    "upstream": {
+      "branches": ["upstream", "upstream_stent"],
+      "positions": ["right", "left"],
+      "angles": ["None", "None"]
+    },
+    "stent": {
+      "branches": ["upstream_stent", "branch_stent_1", "branch_stent_2"],
+      "positions": ["right", "left", "left"],
+      "angles": ["None", 2.0944, 2.0944]
+    },
+    "branch_1": {
+      "branches": ["branch_stent_1", "branch_1"],
+      "positions": ["right", "left"],
+      "angles": ["None", "None"]
+    },
+    "branch_2": {
+      "branches": ["branch_stent_2", "branch_2"],
+      "positions": ["right", "left"],
+      "angles": ["None", "None"]
+    }
+  }
+}
