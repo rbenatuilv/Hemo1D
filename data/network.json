@@ -137,8 +137,8 @@
             "right_bound": "outflow"
         }
     },
-    "bifurcations": {
-        "bif_1": {
+    "junctions": {
+        "junction_1": {
             "branches": [
                 "BAS",
                 "L-PCA_I",
@@ -155,7 +155,7 @@
                 0.7771
             ]
         },
-        "bif_2": {
+        "junction_2": {
             "branches": [
                 "L-PCA_I",
                 "L-PCA_II",
@@ -172,7 +172,7 @@
                 0.9872
             ]
         },
-        "bif_3": {
+        "junction_3": {
             "branches": [
                 "L-ICA_I",
                 "L-PCommA",
@@ -189,7 +189,7 @@
                 0.5778
             ]
         },
-        "bif_4": {
+        "junction_4": {
             "branches": [
                 "L-ICA_II",
                 "L-ACA_I",
@@ -206,7 +206,7 @@
                 0.1917
             ]
         },
-        "bif_5": {
+        "junction_5": {
             "branches": [
                 "L-ACA_I",
                 "ACA",
@@ -223,7 +223,7 @@
                 0.2554
             ]
         },
-        "bif_6": {
+        "junction_6": {
             "branches": [
                 "R-PCA_I",
                 "R-PCA_II",
@@ -240,7 +240,7 @@
                 1.1379
             ]
         },
-        "bif_7": {
+        "junction_7": {
             "branches": [
                 "R-ICA_I",
                 "R-ICA_II",
@@ -257,7 +257,7 @@
                 1.3204
             ]
         },
-        "bif_8": {
+        "junction_8": {
             "branches": [
                 "R-ICA_II",
                 "R-ACA_I",
@@ -274,7 +274,7 @@
                 0.982
             ]
         },
-        "bif_9": {
+        "junction_9": {
             "branches": [
                 "R-ACA_I",
                 "ACA",

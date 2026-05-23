@@ -7,11 +7,11 @@ import hemo1d as hd
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Three-vessel junction simulation")
+    parser = argparse.ArgumentParser(description="Stent-vessel coupling simulation")
     parser.add_argument("--method", choices=("cg", "dg"), default="cg")
-    parser.add_argument("--h", type=float, default=0.03125)
-    parser.add_argument("--dt", type=float, default=2.0e-6)
-    parser.add_argument("--t-end", type=float, default=5.0e-3)
+    parser.add_argument("--h", type=float, default=0.1)
+    parser.add_argument("--dt", type=float, default=1.0e-5)
+    parser.add_argument("--t-end", type=float, default=1.5)
     parser.add_argument("--poly-order", type=int, default=1)
     parser.add_argument("--dg-time-scheme", choices=("rk2", "euler"), default="rk2")
     parser.add_argument("--record-every", type=int, default=1)
@@ -19,15 +19,16 @@ def main() -> None:
     parser.add_argument("--show-plots", action="store_true")
     args = parser.parse_args()
 
-    model = hd.load_from_config("examples/configs/three_vessel.json")
+    model = hd.load_from_config("examples/configs/stent_vessel_coupling.json")
 
-    q_in = hd.create_positive_sine_inflow(
-        amplitude=1.0e-3,
-        duration=5.0e-4,
+    q_in = hd.create_periodic_positive_sine_inflow(
+        amplitude=2.0,
+        duration=1.65e-1,
+        period=2.5e-1,
     )
-    model.set_inlet(vessel_id="parent", kind="flow_rate", function=q_in)
-    model.set_outlet(vessel_id="daughter1", kind="nonreflecting")
-    model.set_outlet(vessel_id="daughter2", kind="nonreflecting")
+
+    model.set_inlet(vessel_id="upstream", kind="flowrate", function=q_in)
+    model.set_outlet(vessel_id="downstream", kind="nonreflecting")
 
     model.set_solver(
         method=args.method,
@@ -38,15 +39,13 @@ def main() -> None:
         record_every=args.record_every,
     )
 
-    for vessel_id in ("parent", "daughter1", "daughter2"):
-        length = model.config.vessel(vessel_id).length
-        model.add_probe(vessel_id=vessel_id, position=0.0, name="left")
-        model.add_probe(vessel_id=vessel_id, position=0.5 * length, name="mid")
-        model.add_probe(vessel_id=vessel_id, position=length, name="right")
+    model.add_probe(vessel_id="upstream", position=40.0, name="inlet")
+    model.add_probe(vessel_id="stent", position=5.0, name="stent")
+    model.add_probe(vessel_id="downstream", position=20.0, name="outlet")
 
     results = model.solve(t_end=args.t_end, show_progress=True)
 
-    output_dir = args.output_dir or Path(f"examples/outputs/three_vessel_{args.method}")
+    output_dir = args.output_dir or Path(f"examples/outputs/stent_vessel_coupling_{args.method}")
     results.save(output_dir)
     results.plot_probes(output_dir / "plots", show=args.show_plots)
 

@@ -9,7 +9,7 @@ from hemo1d.config import NetworkConfig, VesselConfig
 from hemo1d.core.backend import NP_BACKEND
 from hemo1d.core.parameters import BloodParameters, ModelParameters, VesselParameters
 from hemo1d.core.physics import Hemo1DPhysics
-from hemo1d.topology.graph import Bifurcation, VascularNetwork
+from hemo1d.topology.graph import Junction, VascularNetwork
 from hemo1d.topology.endpoint import NetworkEndpoint
 from hemo1d.boundary.base import BoundaryCondition
 
@@ -68,20 +68,18 @@ def build_vascular_network(
         for vessel_id, vessel in config.vessels.items()
     }
 
-    bifurcations = [
-        Bifurcation(
-            parent=bifurcation.parent,
-            daughter1=bifurcation.daughter1,
-            daughter2=bifurcation.daughter2,
-            angles=bifurcation.angles,
+    junctions = [
+        Junction(
+            endpoints=junction.endpoints,
+            angles=junction.angles,
         )
-        for bifurcation in config.bifurcations
+        for junction in config.junctions
     ]
 
     return VascularNetwork(
         vessels=vessels,
-        bifurcations=bifurcations,
         external_boundaries=external_boundaries,
+        junctions=junctions,
     )
 
 

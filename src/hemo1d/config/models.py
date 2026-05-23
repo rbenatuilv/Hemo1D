@@ -34,16 +34,24 @@ class VesselConfig:
 
 @dataclass(frozen=True)
 class JunctionConfig:
-    """Declarative 1-to-2 bifurcation topology."""
+    """Declarative two- or three-vessel junction topology."""
 
     junction_id: str
-    parent: NetworkEndpoint
-    daughter1: NetworkEndpoint
-    daughter2: NetworkEndpoint
-    angles: tuple[float | None, float | None, float | None] = (None, None, None)
+    endpoints: tuple[NetworkEndpoint, ...]
+    angles: tuple[float | None, ...] | None = None
 
-    def endpoints(self) -> tuple[NetworkEndpoint, NetworkEndpoint, NetworkEndpoint]:
-        return self.parent, self.daughter1, self.daughter2
+    def __post_init__(self) -> None:
+        endpoints = tuple(self.endpoints)
+        if len(endpoints) not in (2, 3):
+            raise ValueError("JunctionConfig must contain exactly 2 or 3 endpoints.")
+
+        angles = (None,) * len(endpoints) if self.angles is None else tuple(self.angles)
+        if len(angles) != len(endpoints):
+            raise ValueError("JunctionConfig angles must match the number of endpoints.")
+
+        object.__setattr__(self, "junction_id", str(self.junction_id))
+        object.__setattr__(self, "endpoints", endpoints)
+        object.__setattr__(self, "angles", angles)
 
 
 @dataclass(frozen=True)
@@ -51,7 +59,7 @@ class NetworkConfig:
     """Validated network configuration independent of any solver state."""
 
     vessels: dict[str, VesselConfig]
-    bifurcations: list[JunctionConfig] = field(default_factory=list)
+    junctions: list[JunctionConfig] = field(default_factory=list)
     source_path: Path | None = None
 
     def vessel(self, vessel_id: str) -> VesselConfig:
@@ -62,8 +70,8 @@ class NetworkConfig:
 
     def junction_endpoints(self) -> set[NetworkEndpoint]:
         endpoints: set[NetworkEndpoint] = set()
-        for bifurcation in self.bifurcations:
-            endpoints.update(bifurcation.endpoints())
+        for junction in self.junctions:
+            endpoints.update(junction.endpoints)
         return endpoints
 
     def all_endpoints(self) -> set[NetworkEndpoint]:

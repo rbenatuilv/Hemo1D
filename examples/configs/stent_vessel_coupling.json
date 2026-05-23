@@ -1,0 +1,47 @@
+{
+  "defaults": {
+    "blood": {
+      "rho": 1.06,
+      "mu": 0.035
+    },
+    "gamma_profile": 2.0,
+    "p0": 0.0,
+    "p_ext": 0.0,
+    "gamma_pressure_loss": 0.0
+  },
+  "vessels": {
+    "upstream": {
+      "length": 70.0,
+      "area0": 0.7854,
+      "beta": 354490.77,
+      "left_bound": "inflow",
+      "right_bound": "coupling"
+    },
+    "stent": {
+      "length": 10.0,
+      "area0": 0.7854,
+      "beta": 35449077.0,
+      "left_bound": "inflow",
+      "right_bound": "coupling"
+    },
+    "downstream": {
+      "length": 40.0,
+      "area0": 0.7854,
+      "beta": 354490.77,
+      "left_bound": "coupling",
+      "right_bound": "outflow"
+    }
+  },
+  "junctions": {
+    "upstream_stent": {
+      "branches": ["upstream", "stent"],
+      "positions": ["right", "left"],
+      "angles": ["None", "None"]
+    },
+    "stent_downstream": {
+      "branches": ["stent", "downstream"],
+      "positions": ["right", "left"],
+      "angles": ["None", "None"]
+    }
+  }
+}

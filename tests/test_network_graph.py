@@ -10,7 +10,7 @@ from hemo1d.solvers.cg import CGFEMDiscretization, CGMeshConfig
 from hemo1d.solvers.cg.factory import create_cg_vessel
 from hemo1d.solvers.vessel import Vessel
 from hemo1d.topology import (
-    Bifurcation,
+    Junction,
     NetworkEndpoint,
     VascularNetwork,
 )
@@ -78,7 +78,6 @@ def test_single_vessel_network_is_complete():
 
     network = VascularNetwork(
         vessels={"vessel": vessel},
-        bifurcations=[],
         external_boundaries={
             left: CopyBoundaryCondition(),
             right: NonReflectingBoundary(),
@@ -95,10 +94,12 @@ def test_three_vessel_network_is_complete():
     daughter1 = make_cg_vessel("daughter1")
     daughter2 = make_cg_vessel("daughter2")
 
-    bifurcation = Bifurcation(
-        parent=NetworkEndpoint("parent", EndpointSide.RIGHT),
-        daughter1=NetworkEndpoint("daughter1", EndpointSide.LEFT),
-        daughter2=NetworkEndpoint("daughter2", EndpointSide.LEFT),
+    junction = Junction(
+        endpoints=(
+            NetworkEndpoint("parent", EndpointSide.RIGHT),
+            NetworkEndpoint("daughter1", EndpointSide.LEFT),
+            NetworkEndpoint("daughter2", EndpointSide.LEFT),
+        )
     )
 
     network = VascularNetwork(
@@ -107,11 +108,38 @@ def test_three_vessel_network_is_complete():
             "daughter1": daughter1,
             "daughter2": daughter2,
         },
-        bifurcations=[bifurcation],
+        junctions=[junction],
         external_boundaries={
             NetworkEndpoint("parent", EndpointSide.LEFT): CopyBoundaryCondition(),
             NetworkEndpoint("daughter1", EndpointSide.RIGHT): NonReflectingBoundary(),
             NetworkEndpoint("daughter2", EndpointSide.RIGHT): NonReflectingBoundary(),
+        },
+    )
+
+    assert network.is_complete()
+    assert network.unassigned_endpoints() == set()
+
+
+def test_two_vessel_junction_network_is_complete():
+    upstream = make_cg_vessel("upstream")
+    downstream = make_cg_vessel("downstream")
+
+    junction = Junction(
+        endpoints=(
+            NetworkEndpoint("upstream", EndpointSide.RIGHT),
+            NetworkEndpoint("downstream", EndpointSide.LEFT),
+        )
+    )
+
+    network = VascularNetwork(
+        vessels={
+            "upstream": upstream,
+            "downstream": downstream,
+        },
+        junctions=[junction],
+        external_boundaries={
+            NetworkEndpoint("upstream", EndpointSide.LEFT): CopyBoundaryCondition(),
+            NetworkEndpoint("downstream", EndpointSide.RIGHT): NonReflectingBoundary(),
         },
     )
 
@@ -128,19 +156,21 @@ def test_network_rejects_vessel_key_mismatch():
         )
 
 
-def test_network_rejects_unknown_bifurcation_vessel():
+def test_network_rejects_unknown_junction_vessel():
     parent = make_cg_vessel("parent")
 
-    bifurcation = Bifurcation(
-        parent=NetworkEndpoint("parent", EndpointSide.RIGHT),
-        daughter1=NetworkEndpoint("missing1", EndpointSide.LEFT),
-        daughter2=NetworkEndpoint("missing2", EndpointSide.LEFT),
+    junction = Junction(
+        endpoints=(
+            NetworkEndpoint("parent", EndpointSide.RIGHT),
+            NetworkEndpoint("missing1", EndpointSide.LEFT),
+            NetworkEndpoint("missing2", EndpointSide.LEFT),
+        )
     )
 
     with pytest.raises(ValueError):
         VascularNetwork(
             vessels={"parent": parent},
-            bifurcations=[bifurcation],
+            junctions=[junction],
         )
 
 
@@ -163,16 +193,20 @@ def test_network_rejects_duplicate_junction_endpoint():
 
     repeated_endpoint = NetworkEndpoint("parent", EndpointSide.RIGHT)
 
-    bifurcation_1 = Bifurcation(
-        parent=repeated_endpoint,
-        daughter1=NetworkEndpoint("daughter1", EndpointSide.LEFT),
-        daughter2=NetworkEndpoint("daughter2", EndpointSide.LEFT),
+    junction_1 = Junction(
+        endpoints=(
+            repeated_endpoint,
+            NetworkEndpoint("daughter1", EndpointSide.LEFT),
+            NetworkEndpoint("daughter2", EndpointSide.LEFT),
+        )
     )
 
-    bifurcation_2 = Bifurcation(
-        parent=repeated_endpoint,
-        daughter1=NetworkEndpoint("daughter1", EndpointSide.RIGHT),
-        daughter2=NetworkEndpoint("daughter2", EndpointSide.RIGHT),
+    junction_2 = Junction(
+        endpoints=(
+            repeated_endpoint,
+            NetworkEndpoint("daughter1", EndpointSide.RIGHT),
+            NetworkEndpoint("daughter2", EndpointSide.RIGHT),
+        )
     )
 
     with pytest.raises(ValueError):
@@ -182,7 +216,7 @@ def test_network_rejects_duplicate_junction_endpoint():
                 "daughter1": daughter1,
                 "daughter2": daughter2,
             },
-            bifurcations=[bifurcation_1, bifurcation_2],
+            junctions=[junction_1, junction_2],
         )
 
 
@@ -193,10 +227,12 @@ def test_network_rejects_endpoint_as_boundary_and_junction():
 
     endpoint = NetworkEndpoint("parent", EndpointSide.RIGHT)
 
-    bifurcation = Bifurcation(
-        parent=endpoint,
-        daughter1=NetworkEndpoint("daughter1", EndpointSide.LEFT),
-        daughter2=NetworkEndpoint("daughter2", EndpointSide.LEFT),
+    junction = Junction(
+        endpoints=(
+            endpoint,
+            NetworkEndpoint("daughter1", EndpointSide.LEFT),
+            NetworkEndpoint("daughter2", EndpointSide.LEFT),
+        )
     )
 
     with pytest.raises(ValueError):
@@ -206,7 +242,7 @@ def test_network_rejects_endpoint_as_boundary_and_junction():
                 "daughter1": daughter1,
                 "daughter2": daughter2,
             },
-            bifurcations=[bifurcation],
+            junctions=[junction],
             external_boundaries={
                 endpoint: CopyBoundaryCondition(),
             },

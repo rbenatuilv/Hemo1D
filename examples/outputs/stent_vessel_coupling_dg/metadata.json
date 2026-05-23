@@ -1,0 +1,21 @@
+{
+  "num_steps": 150000,
+  "solver": {
+    "cfl": 0.5773502691896257,
+    "dg_time_scheme": "rk2",
+    "dt": 1e-05,
+    "h": 0.1,
+    "max_steps": 1000000,
+    "method": "dg",
+    "num_cells": null,
+    "poly_order": 1,
+    "record_every": 1
+  },
+  "source_path": "examples/configs/stent_vessel_coupling.json",
+  "time": 1.5,
+  "vessels": [
+    "downstream",
+    "stent",
+    "upstream"
+  ]
+}

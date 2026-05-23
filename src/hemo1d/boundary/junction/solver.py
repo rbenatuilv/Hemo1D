@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import numpy as np
 
-from hemo1d.boundary.junction.data import BifurcationJunctionData, BifurcationSolution
-from hemo1d.boundary.junction.residual import BifurcationJunctionResidual
+from hemo1d.boundary.junction.data import (
+    JunctionData,
+    JunctionSolution,
+)
+from hemo1d.boundary.junction.residual import JunctionResidual
 from hemo1d.core.newton import NewtonConfig, NewtonSolver
 from hemo1d.core.state import BoundaryState
 
 
-class BifurcationJunctionSolver:
-    """Newton-based solver for one 1-to-2 bifurcation."""
+class JunctionSolver:
+    """Newton-based solver for one two- or three-vessel junction."""
 
     def __init__(
         self,
@@ -29,12 +32,12 @@ class BifurcationJunctionSolver:
 
     def solve(
         self,
-        data: BifurcationJunctionData,
+        data: JunctionData,
         dt: float,
         x0: np.ndarray | None = None,
         raise_on_failure: bool = True,
-    ) -> BifurcationSolution:
-        residual = BifurcationJunctionResidual(
+    ) -> JunctionSolution:
+        residual = JunctionResidual(
             data=data,
             dt=dt,
         )
@@ -49,14 +52,18 @@ class BifurcationJunctionSolver:
             raise_on_failure=raise_on_failure,
         )
 
-        A_p, Q_p, A_d1, Q_d1, A_d2, Q_d2 = result.x
+        endpoint_states = tuple(
+            BoundaryState(
+                area=float(result.x[2 * i]),
+                flow_rate=float(result.x[2 * i + 1]),
+            )
+            for i in range(len(data.endpoints))
+        )
 
-        return BifurcationSolution(
-            parent=BoundaryState(area=float(A_p), flow_rate=float(Q_p)),
-            daughter1=BoundaryState(area=float(A_d1), flow_rate=float(Q_d1)),
-            daughter2=BoundaryState(area=float(A_d2), flow_rate=float(Q_d2)),
+        return JunctionSolution(
+            endpoint_states=endpoint_states,
             newton_result=result,
         )
 
 
-__all__ = ["BifurcationJunctionSolver"]
+__all__ = ["JunctionSolver"]

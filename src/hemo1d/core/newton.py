@@ -119,8 +119,7 @@ class NewtonSolver:
     Generic Newton solver for small nonlinear systems.
 
     The first use case is the 1D hemodynamics junction system, which has only
-    six unknowns for a bifurcation. Therefore a dense NumPy linear solve is
-    appropriate.
+    a handful of unknowns. Therefore a dense NumPy linear solve is appropriate.
     """
 
     def __init__(self, config: NewtonConfig | None = None) -> None:
@@ -206,8 +205,7 @@ class NewtonSolver:
             x = x + dx
 
             increment_norm = float(
-                np.linalg.norm(dx, ord=2)
-                / (np.linalg.norm(x, ord=2) + cfg.increment_scale)
+                np.linalg.norm(dx, ord=2) / (np.linalg.norm(x, ord=2) + cfg.increment_scale)
             )
 
             if increment_norm <= cfg.increment_tol:

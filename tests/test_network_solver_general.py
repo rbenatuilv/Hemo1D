@@ -13,7 +13,7 @@ from hemo1d.solvers.cg import CGFEMDiscretization, CGMeshConfig
 from hemo1d.solvers.cg.factory import create_cg_vessel
 from hemo1d.solvers.model_solver import NetworkSolver
 from hemo1d.topology import (
-    Bifurcation,
+    Junction,
     NetworkEndpoint,
     VascularNetwork,
 )
@@ -94,10 +94,12 @@ def test_general_network_solver_preserves_three_vessel_rest_state():
     daughter1 = make_vessel("daughter1", num_cells=16)
     daughter2 = make_vessel("daughter2", num_cells=16)
 
-    bifurcation = Bifurcation(
-        parent=NetworkEndpoint("parent", EndpointSide.RIGHT),
-        daughter1=NetworkEndpoint("daughter1", EndpointSide.LEFT),
-        daughter2=NetworkEndpoint("daughter2", EndpointSide.LEFT),
+    junction = Junction(
+        endpoints=(
+            NetworkEndpoint("parent", EndpointSide.RIGHT),
+            NetworkEndpoint("daughter1", EndpointSide.LEFT),
+            NetworkEndpoint("daughter2", EndpointSide.LEFT),
+        )
     )
 
     network = VascularNetwork(
@@ -106,11 +108,55 @@ def test_general_network_solver_preserves_three_vessel_rest_state():
             "daughter1": daughter1,
             "daughter2": daughter2,
         },
-        bifurcations=[bifurcation],
+        junctions=[junction],
         external_boundaries={
             NetworkEndpoint("parent", EndpointSide.LEFT): PrescribedFlowBoundary(lambda t: 0.0),
             NetworkEndpoint("daughter1", EndpointSide.RIGHT): NonReflectingBoundary(),
             NetworkEndpoint("daughter2", EndpointSide.RIGHT): NonReflectingBoundary(),
+        },
+    )
+
+    solver = NetworkSolver(network)
+
+    result = solver.run(
+        config=TimeConfig(
+            t0=0.0,
+            t_end=3.0e-5,
+            fixed_dt=1.0e-5,
+        ),
+        record_every=1,
+    )
+
+    assert math.isclose(result.time, 3.0e-5)
+
+    for vessel in result.network.vessels.values():
+        assert np.allclose(vessel.state_n.A.x.array, vessel.physics.params.area0)
+        assert np.allclose(vessel.state_n.Q.x.array, 0.0)
+
+
+def test_general_network_solver_preserves_two_vessel_junction_rest_state():
+    if MPI.COMM_WORLD.size != 1:
+        pytest.skip("Network solver tests are serial-only for now.")
+
+    upstream = make_vessel("upstream", num_cells=16)
+    downstream = make_vessel("downstream", num_cells=16)
+
+    junction = Junction(
+        endpoints=(
+            NetworkEndpoint("upstream", EndpointSide.RIGHT),
+            NetworkEndpoint("downstream", EndpointSide.LEFT),
+        )
+    )
+
+    network = VascularNetwork(
+        vessels={
+            "upstream": upstream,
+            "downstream": downstream,
+        },
+        junctions=[junction],
+        external_boundaries={
+            NetworkEndpoint("upstream", EndpointSide.LEFT): PrescribedFlowBoundary(lambda t: 0.0),
+            NetworkEndpoint("downstream", EndpointSide.RIGHT): NonReflectingBoundary(),
         },
     )
 

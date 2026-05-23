@@ -11,11 +11,11 @@ from hemo1d.convergence.network_snapshots import (
 from hemo1d.core.state import BoundaryState
 from hemo1d.observe.diagnostics import StateDiagnostics, compute_vessel_diagnostics
 from hemo1d.topology.endpoint import NetworkEndpoint
-from hemo1d.topology.graph import Bifurcation, VascularNetwork
+from hemo1d.topology.graph import Junction, VascularNetwork
 from hemo1d.boundary.junction import (
-    BifurcationJunctionData,
-    BifurcationJunctionSolver,
+    JunctionData,
     JunctionEndpointData,
+    JunctionSolver,
 )
 from hemo1d.solvers.vessel import Vessel
 from hemo1d.observe import NetworkProbeRecorder, ProbeHistory, ProbePoint
@@ -70,8 +70,8 @@ class NetworkSolver:
 
     This solver handles:
         - a single vessel,
-        - one bifurcation,
-        - multiple bifurcations,
+        - one junction,
+        - multiple junctions,
         - larger networks.
 
     Each vessel may later use a different discretization, as long as it exposes
@@ -81,14 +81,12 @@ class NetworkSolver:
     def __init__(
         self,
         network: VascularNetwork,
-        junction_solver: BifurcationJunctionSolver | None = None,
+        junction_solver: JunctionSolver | None = None,
     ) -> None:
         network.require_complete()
 
         self.network = network
-        self.junction_solver = (
-            junction_solver if junction_solver is not None else BifurcationJunctionSolver()
-        )
+        self.junction_solver = junction_solver if junction_solver is not None else JunctionSolver()
 
     def vessels(self) -> dict[str, Vessel]:
         return self.network.vessels
@@ -104,8 +102,7 @@ class NetworkSolver:
             dt = config.fixed_dt
         else:
             dt = min(
-                vessel.compute_stable_dt(config.cfl)
-                for vessel in self.network.vessels.values()
+                vessel.compute_stable_dt(config.cfl) for vessel in self.network.vessels.values()
             )
 
         return min(dt, config.t_end - time)
@@ -146,40 +143,19 @@ class NetworkSolver:
 
         return endpoint_states
 
-    def solve_bifurcation(
+    def solve_junction(
         self,
-        bifurcation: Bifurcation,
+        junction: Junction,
         dt: float,
     ) -> dict[NetworkEndpoint, BoundaryState]:
         """
-        Solve one bifurcation and return endpoint states for its three endpoints.
+        Solve one two- or three-vessel junction and return endpoint states.
         """
-        parent_vessel = self.network.vessels[bifurcation.parent.vessel_id]
-        daughter1_vessel = self.network.vessels[bifurcation.daughter1.vessel_id]
-        daughter2_vessel = self.network.vessels[bifurcation.daughter2.vessel_id]
-
-        data = BifurcationJunctionData(
-            parent=JunctionEndpointData(
-                physics=parent_vessel.physics,
-                endpoint_data=parent_vessel.endpoint_data(bifurcation.parent.side),
-                side=bifurcation.parent.side,
-                name=bifurcation.parent.label(),
-                angle=bifurcation.angles[0],
-            ),
-            daughter1=JunctionEndpointData(
-                physics=daughter1_vessel.physics,
-                endpoint_data=daughter1_vessel.endpoint_data(bifurcation.daughter1.side),
-                side=bifurcation.daughter1.side,
-                name=bifurcation.daughter1.label(),
-                angle=bifurcation.angles[1],
-            ),
-            daughter2=JunctionEndpointData(
-                physics=daughter2_vessel.physics,
-                endpoint_data=daughter2_vessel.endpoint_data(bifurcation.daughter2.side),
-                side=bifurcation.daughter2.side,
-                name=bifurcation.daughter2.label(),
-                angle=bifurcation.angles[2],
-            ),
+        data = JunctionData(
+            endpoints=tuple(
+                self._junction_endpoint_data(endpoint, angle)
+                for endpoint, angle in zip(junction.endpoints, junction.angles, strict=True)
+            )
         )
 
         solution = self.junction_solver.solve(
@@ -188,18 +164,28 @@ class NetworkSolver:
             raise_on_failure=True,
         )
 
-        return {
-            bifurcation.parent: solution.parent,
-            bifurcation.daughter1: solution.daughter1,
-            bifurcation.daughter2: solution.daughter2,
-        }
+        return dict(zip(junction.endpoints, solution.endpoint_states, strict=True))
 
-    def solve_all_bifurcations(
+    def _junction_endpoint_data(
+        self,
+        endpoint: NetworkEndpoint,
+        angle: float | None,
+    ) -> JunctionEndpointData:
+        vessel = self.network.vessels[endpoint.vessel_id]
+        return JunctionEndpointData(
+            physics=vessel.physics,
+            endpoint_data=vessel.endpoint_data(endpoint.side),
+            side=endpoint.side,
+            name=endpoint.label(),
+            angle=angle,
+        )
+
+    def solve_all_junctions(
         self,
         dt: float,
     ) -> dict[NetworkEndpoint, BoundaryState]:
         """
-        Solve all bifurcation systems independently.
+        Solve all junction systems independently.
 
         This assumes junctions are coupled only through vessel states at the
         previous time step, which matches the current explicit/semi-explicit
@@ -207,18 +193,16 @@ class NetworkSolver:
         """
         endpoint_states: dict[NetworkEndpoint, BoundaryState] = {}
 
-        for bifurcation in self.network.bifurcations:
-            solved = self.solve_bifurcation(
-                bifurcation=bifurcation,
+        for junction in self.network.junctions:
+            solved = self.solve_junction(
+                junction=junction,
                 dt=dt,
             )
 
             overlap = set(endpoint_states) & set(solved)
             if overlap:
                 labels = sorted(endpoint.label() for endpoint in overlap)
-                raise RuntimeError(
-                    f"Duplicate bifurcation endpoint states computed for: {labels}."
-                )
+                raise RuntimeError(f"Duplicate junction endpoint states computed for: {labels}.")
 
             endpoint_states.update(solved)
 
@@ -238,7 +222,7 @@ class NetworkSolver:
             dt=dt,
         )
 
-        junction_states = self.solve_all_bifurcations(dt=dt)
+        junction_states = self.solve_all_junctions(dt=dt)
 
         overlap = set(endpoint_states) & set(junction_states)
         if overlap:
@@ -285,8 +269,6 @@ class NetworkSolver:
 
         for vessel in self.network.vessels.values():
             vessel.swap_states()
-
-
 
     def run(
         self,
@@ -364,7 +346,7 @@ class NetworkSolver:
                 total=config.t_end - config.t0,
                 desc=progress_description,
                 unit="sim s",
-                bar_format='{desc}: {percentage:.0f}%|{bar}| {n:.5f}/{total:.5f} [{elapsed}<{remaining}]',
+                bar_format="{desc}: {percentage:.0f}%|{bar}| {n:.5f}/{total:.5f} [{elapsed}<{remaining}]",
             )
 
         try:
