@@ -393,6 +393,26 @@ class NetworkSolver:
 
         try:
             while time < config.t_end:
+                remaining = config.t_end - time
+                final_time_tol = 1.0e-12 * max(1.0, abs(config.t_end))
+                if remaining <= final_time_tol:
+                    time = config.t_end
+                    if pbar is not None and remaining > 0.0:
+                        pbar.update(remaining)
+                    if (
+                        not history.diagnostics
+                        or history.diagnostics[-1].time != time
+                    ):
+                        self.record_diagnostics(history, time)
+
+                        if probe_recorder is not None:
+                            history.probes.samples.extend(probe_recorder.sample(time))
+                        if snapshot_recorder is not None:
+                            history.snapshots.snapshots.append(
+                                snapshot_recorder.sample(time)
+                            )
+                    break
+
                 if step >= config.max_steps:
                     raise RuntimeError(
                         f"Reached max_steps={config.max_steps} before t_end={config.t_end}."

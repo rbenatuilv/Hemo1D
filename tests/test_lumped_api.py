@@ -8,6 +8,24 @@ from hemo1d.core.state import EndpointSide
 from hemo1d.topology.endpoint import NetworkEndpoint
 
 
+def test_capillary_bed_import_compatibility():
+    from hemo1d.lumped import (
+        CapillaryBedEndpoint as PackageEndpoint,
+        CapillaryBedSample as PackageSample,
+        LumpedCapillaryBed as PackageBed,
+    )
+    from hemo1d.lumped.capillary_bed import (
+        CapillaryBedEndpoint as ModuleEndpoint,
+        CapillaryBedSample as ModuleSample,
+        LumpedCapillaryBed as ModuleBed,
+    )
+
+    assert PackageEndpoint is ModuleEndpoint
+    assert PackageSample is ModuleSample
+    assert PackageBed is ModuleBed
+    assert ModuleBed.__module__ == "hemo1d.lumped.capillary_bed"
+
+
 def write_two_vessel_config(tmp_path):
     path = tmp_path / "two_outlets.json"
     path.write_text(

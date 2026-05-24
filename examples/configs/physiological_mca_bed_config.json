@@ -1,0 +1,20 @@
+{
+  "defaults": {
+    "blood": {
+      "rho": 1.06,
+      "mu": 0.035
+    },
+    "gamma_profile": 2.0,
+    "p0": 106657.6,
+    "p_ext": 0.0
+  },
+  "vessels": {
+    "left_mca": {
+      "length": 8.0,
+      "area0": 0.0491,
+      "beta": 606060.0,
+      "left_bound": "inflow",
+      "right_bound": "outflow"
+    }
+  }
+}

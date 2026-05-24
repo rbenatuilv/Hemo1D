@@ -62,6 +62,72 @@ def make_bed(endpoint: NetworkEndpoint, bed_id: str = "bed") -> LumpedCapillaryB
     )
 
 
+def assert_finite_endpoint_states(states):
+    for state in states.values():
+        assert math.isfinite(state.area)
+        assert state.area > 0.0
+        assert math.isfinite(state.flow_rate)
+
+
+def assert_bed_balances(bed: LumpedCapillaryBed, states, vessels, pressure_old, dt):
+    endpoint_resistances = {
+        bed_endpoint.endpoint: bed_endpoint.resistance
+        for bed_endpoint in bed.endpoints
+    }
+
+    for endpoint, state in states.items():
+        vessel = vessels[endpoint.vessel_id]
+        inflow = endpoint.outward_flow(state.flow_rate)
+        pressure_1d = vessel.physics.pressure(state.area)
+        resistance = endpoint_resistances[endpoint]
+
+        assert inflow == pytest.approx(
+            (pressure_1d - bed.pressure) / resistance,
+            abs=1.0e-8,
+        )
+
+    assert bed.compliance * (bed.pressure - pressure_old) / dt == pytest.approx(
+        bed.last_total_inflow - bed.last_venous_outflow,
+        abs=1.0e-8,
+    )
+
+
+def test_single_endpoint_bed_solves_with_zero_pressure_scale():
+    vessel = make_vessel("vessel")
+    endpoint = NetworkEndpoint("vessel", EndpointSide.RIGHT)
+    bed = make_bed(endpoint)
+
+    states = bed.solve(vessels={"vessel": vessel}, dt=1.0e-5)
+
+    assert set(states) == {endpoint}
+    assert math.isfinite(bed.pressure)
+    assert_finite_endpoint_states(states)
+
+
+def test_single_endpoint_bed_solves_with_nonzero_pressure_scale():
+    vessel = make_vessel("vessel")
+    endpoint = NetworkEndpoint("vessel", EndpointSide.RIGHT)
+    bed = LumpedCapillaryBed(
+        bed_id="nonzero_pressure",
+        endpoints=[
+            CapillaryBedEndpoint(
+                endpoint=endpoint,
+                resistance=1.0e6,
+            )
+        ],
+        compliance=1.0e-7,
+        venous_resistance=1.0e6,
+        venous_pressure=500.0,
+        pressure=800.0,
+    )
+
+    states = bed.solve(vessels={"vessel": vessel}, dt=1.0e-5)
+
+    assert set(states) == {endpoint}
+    assert math.isfinite(bed.pressure)
+    assert_finite_endpoint_states(states)
+
+
 def test_single_endpoint_bed_runs_for_a_few_steps():
     vessel = make_vessel("vessel")
     outlet = NetworkEndpoint("vessel", EndpointSide.RIGHT)
@@ -100,6 +166,7 @@ def test_single_endpoint_bed_runs_for_a_few_steps():
 def test_shared_bed_solve_returns_all_endpoint_states_and_diagnostics():
     vessel_1 = make_vessel("v1")
     vessel_2 = make_vessel("v2")
+    vessels = {"v1": vessel_1, "v2": vessel_2}
     endpoint_1 = NetworkEndpoint("v1", EndpointSide.RIGHT)
     endpoint_2 = NetworkEndpoint("v2", EndpointSide.RIGHT)
     bed = LumpedCapillaryBed(
@@ -110,19 +177,32 @@ def test_shared_bed_solve_returns_all_endpoint_states_and_diagnostics():
         ],
         compliance=1.0e-7,
         venous_resistance=1.0e6,
-        venous_pressure=0.0,
-        pressure=0.0,
+        venous_pressure=100.0,
+        pressure=400.0,
     )
+    pressure_old = bed.pressure
+    dt = 1.0e-5
 
     states = bed.solve(
-        vessels={"v1": vessel_1, "v2": vessel_2},
-        dt=1.0e-5,
+        vessels=vessels,
+        dt=dt,
     )
 
     assert set(states) == {endpoint_1, endpoint_2}
     assert math.isfinite(bed.pressure)
+    assert_finite_endpoint_states(states)
     assert bed.last_total_inflow == pytest.approx(
         sum(bed.last_endpoint_inflows.values())
+    )
+    assert bed.last_venous_outflow == pytest.approx(
+        (bed.pressure - bed.venous_pressure) / bed.venous_resistance
+    )
+    assert_bed_balances(
+        bed=bed,
+        states=states,
+        vessels=vessels,
+        pressure_old=pressure_old,
+        dt=dt,
     )
 
 

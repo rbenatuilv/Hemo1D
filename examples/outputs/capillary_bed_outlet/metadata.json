@@ -6,7 +6,7 @@
     "dt": 1e-05,
     "h": 0.0625,
     "max_steps": 1000000,
-    "method": "dg",
+    "method": "cg",
     "num_cells": null,
     "poly_order": 1,
     "record_every": 5
