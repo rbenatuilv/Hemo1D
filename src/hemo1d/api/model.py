@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -24,6 +26,7 @@ from hemo1d.boundary import BoundaryCondition
 from hemo1d.builder import SolverSettings, build_vascular_network
 from hemo1d.config import NetworkConfig, load_network_config, parse_endpoint_side
 from hemo1d.core.state import EndpointSide
+from hemo1d.lumped import CapillaryBedEndpoint, LumpedCapillaryBed
 from hemo1d.observe import ProbePoint
 from hemo1d.results import Results
 from hemo1d.solvers.model_solver import NetworkSolver
@@ -44,6 +47,7 @@ class HemodynamicModel:
         self.config = config
         self.solver_settings = SolverSettings()
         self._boundaries: dict[NetworkEndpoint, BoundaryAssignment] = {}
+        self._lumped_beds: list[LumpedCapillaryBed] = []
         self._probes: list[ProbePoint] = []
         self._last_result: Results | None = None
 
@@ -101,6 +105,7 @@ class HemodynamicModel:
         """Set an external inlet boundary condition for one vessel endpoint."""
 
         endpoint = self._resolve_external_endpoint(vessel_id, side, role="inlet")
+        self._ensure_endpoint_not_lumped(endpoint)
         self._boundaries[endpoint] = BoundaryAssignment(
             endpoint=endpoint,
             kind=normalize_boundary_kind(kind),
@@ -118,11 +123,80 @@ class HemodynamicModel:
         """Set an external outlet boundary condition for one vessel endpoint."""
 
         endpoint = self._resolve_external_endpoint(vessel_id, side, role="outlet")
+        self._ensure_endpoint_not_lumped(endpoint)
         self._boundaries[endpoint] = BoundaryAssignment(
             endpoint=endpoint,
             kind=normalize_boundary_kind(kind),
             function=function,
         )
+
+    def set_windkessel_outlet(
+        self,
+        *,
+        vessel_id: str,
+        R_art: float,
+        C: float,
+        R_ven: float,
+        P_ven: float,
+        P0: float | None = None,
+        tissue_volume: float | None = None,
+        side: EndpointSide | str | None = None,
+        bed_id: str | None = None,
+    ) -> None:
+        """Connect one terminal outlet to a one-endpoint lumped capillary bed."""
+
+        endpoint = self._resolve_external_endpoint(vessel_id, side, role="outlet")
+        bed = LumpedCapillaryBed(
+            bed_id=bed_id or f"{endpoint.vessel_id}_{endpoint.side.value}_windkessel",
+            endpoints=[
+                CapillaryBedEndpoint(
+                    endpoint=endpoint,
+                    resistance=float(R_art),
+                )
+            ],
+            compliance=float(C),
+            venous_resistance=float(R_ven),
+            venous_pressure=float(P_ven),
+            pressure=(
+                self._default_bed_pressure([endpoint]) if P0 is None else float(P0)
+            ),
+            tissue_volume=tissue_volume,
+        )
+
+        self._add_lumped_bed(bed)
+
+    def add_capillary_bed(
+        self,
+        *,
+        bed_id: str,
+        outlets: list[dict[str, Any] | tuple[Any, ...]],
+        C: float,
+        R_ven: float,
+        P_ven: float,
+        P0: float | None = None,
+        tissue_volume: float | None = None,
+    ) -> None:
+        """Connect one or more terminal outlets to a shared capillary bed."""
+
+        if not outlets:
+            raise ValueError("Capillary bed outlets must be non-empty.")
+
+        bed_endpoints = [self._parse_capillary_bed_outlet(outlet) for outlet in outlets]
+        endpoints = [bed_endpoint.endpoint for bed_endpoint in bed_endpoints]
+
+        bed = LumpedCapillaryBed(
+            bed_id=bed_id,
+            endpoints=bed_endpoints,
+            compliance=float(C),
+            venous_resistance=float(R_ven),
+            venous_pressure=float(P_ven),
+            pressure=(
+                self._default_bed_pressure(endpoints) if P0 is None else float(P0)
+            ),
+            tissue_volume=tissue_volume,
+        )
+
+        self._add_lumped_bed(bed)
 
     def add_probe(
         self,
@@ -166,6 +240,7 @@ class HemodynamicModel:
             config=self.config,
             solver=self.solver_settings,
             external_boundaries=boundaries,
+            lumped_beds=copy.deepcopy(self._lumped_beds),
         )
         network.require_complete()
 
@@ -322,12 +397,18 @@ class HemodynamicModel:
     def _build_boundary_conditions(self) -> dict[NetworkEndpoint, BoundaryCondition]:
         boundaries: dict[NetworkEndpoint, BoundaryCondition] = {}
 
-        missing = self.config.external_endpoints() - set(self._boundaries)
+        lumped_endpoints = self._lumped_endpoint_set()
+        missing = self.config.external_endpoints() - set(self._boundaries) - lumped_endpoints
         if missing:
             labels = sorted(endpoint.label() for endpoint in missing)
             raise ValueError(f"Missing external boundary conditions for: {labels}.")
 
         for endpoint, assignment in self._boundaries.items():
+            if endpoint in lumped_endpoints:
+                raise ValueError(
+                    f"Endpoint {endpoint.label()} cannot have both an ordinary "
+                    "boundary condition and a lumped capillary bed."
+                )
             boundaries[endpoint] = self._make_boundary_condition(assignment)
 
         return boundaries
@@ -337,6 +418,74 @@ class HemodynamicModel:
         assignment: BoundaryAssignment,
     ) -> BoundaryCondition:
         return make_boundary_condition(self.config, assignment)
+
+    def _parse_capillary_bed_outlet(
+        self,
+        outlet: dict[str, Any] | tuple[Any, ...],
+    ) -> CapillaryBedEndpoint:
+        if isinstance(outlet, dict):
+            vessel_id = outlet.get("vessel_id", outlet.get("vessel", outlet.get("id")))
+            if vessel_id is None:
+                raise ValueError("Capillary bed outlet is missing vessel_id.")
+            if "R_art" not in outlet:
+                raise ValueError("Capillary bed outlet is missing R_art.")
+            side = outlet.get("side")
+            resistance = outlet["R_art"]
+        elif isinstance(outlet, tuple):
+            if len(outlet) not in (2, 3):
+                raise ValueError(
+                    "Capillary bed outlet tuples must be "
+                    "(vessel_id, R_art) or (vessel_id, R_art, side)."
+                )
+            vessel_id = outlet[0]
+            resistance = outlet[1]
+            side = outlet[2] if len(outlet) == 3 else None
+        else:
+            raise ValueError("Capillary bed outlets must be dicts or tuples.")
+
+        endpoint = self._resolve_external_endpoint(str(vessel_id), side, role="outlet")
+        return CapillaryBedEndpoint(
+            endpoint=endpoint,
+            resistance=float(resistance),
+        )
+
+    def _add_lumped_bed(self, bed: LumpedCapillaryBed) -> None:
+        if any(existing.bed_id == bed.bed_id for existing in self._lumped_beds):
+            raise ValueError(f"Lumped capillary bed id {bed.bed_id!r} already exists.")
+
+        existing_endpoints = self._lumped_endpoint_set()
+        overlap = existing_endpoints & bed.endpoint_set()
+        if overlap:
+            labels = sorted(endpoint.label() for endpoint in overlap)
+            raise ValueError(f"Endpoints already assigned to a lumped bed: {labels}.")
+
+        for endpoint in bed.endpoint_set():
+            self._boundaries.pop(endpoint, None)
+
+        self._lumped_beds.append(bed)
+
+    def _lumped_endpoint_set(self) -> set[NetworkEndpoint]:
+        endpoints: set[NetworkEndpoint] = set()
+        for bed in self._lumped_beds:
+            endpoints.update(bed.endpoint_set())
+        return endpoints
+
+    def _ensure_endpoint_not_lumped(self, endpoint: NetworkEndpoint) -> None:
+        if endpoint in self._lumped_endpoint_set():
+            raise ValueError(
+                f"Endpoint {endpoint.label()} is already assigned to a lumped capillary bed."
+            )
+
+    def _default_bed_pressure(self, endpoints: list[NetworkEndpoint]) -> float:
+        if not endpoints:
+            raise ValueError("Cannot infer capillary bed pressure without endpoints.")
+
+        pressures = []
+        for endpoint in endpoints:
+            vessel = self.config.vessel(endpoint.vessel_id)
+            pressures.append(float(vessel.p_ext + vessel.p0))
+
+        return float(np.mean(pressures))
 
 
 def load_from_config(path: str | Path) -> HemodynamicModel:

@@ -9,6 +9,7 @@ from hemo1d.convergence.network_snapshots import (
     NetworkSnapshotRecorder,
 )
 from hemo1d.core.state import BoundaryState
+from hemo1d.lumped import CapillaryBedSample
 from hemo1d.observe.diagnostics import StateDiagnostics, compute_vessel_diagnostics
 from hemo1d.topology.endpoint import NetworkEndpoint
 from hemo1d.topology.graph import Junction, VascularNetwork
@@ -30,6 +31,7 @@ class NetworkDiagnosticsSample:
 
     time: float
     vessel_diagnostics: dict[str, StateDiagnostics]
+    lumped_bed_samples: dict[str, CapillaryBedSample] = field(default_factory=dict)
 
 
 @dataclass
@@ -114,6 +116,9 @@ class NetworkSolver:
                 vessel_diagnostics={
                     vessel_id: compute_vessel_diagnostics(vessel, time)
                     for vessel_id, vessel in self.network.vessels.items()
+                },
+                lumped_bed_samples={
+                    bed.bed_id: bed.sample(time) for bed in self.network.lumped_beds
                 },
             )
         )
@@ -208,6 +213,32 @@ class NetworkSolver:
 
         return endpoint_states
 
+    def solve_all_lumped_beds(
+        self,
+        dt: float,
+    ) -> dict[NetworkEndpoint, BoundaryState]:
+        """
+        Solve all lumped capillary beds and return their endpoint states.
+        """
+        endpoint_states: dict[NetworkEndpoint, BoundaryState] = {}
+
+        for bed in self.network.lumped_beds:
+            solved = bed.solve(
+                vessels=self.network.vessels,
+                dt=dt,
+            )
+
+            overlap = set(endpoint_states) & set(solved)
+            if overlap:
+                labels = sorted(endpoint.label() for endpoint in overlap)
+                raise RuntimeError(
+                    f"Duplicate lumped bed endpoint states computed for: {labels}."
+                )
+
+            endpoint_states.update(solved)
+
+        return endpoint_states
+
     def compute_endpoint_states(
         self,
         *,
@@ -223,6 +254,7 @@ class NetworkSolver:
         )
 
         junction_states = self.solve_all_junctions(dt=dt)
+        lumped_states = self.solve_all_lumped_beds(dt=dt)
 
         overlap = set(endpoint_states) & set(junction_states)
         if overlap:
@@ -232,6 +264,16 @@ class NetworkSolver:
             )
 
         endpoint_states.update(junction_states)
+
+        overlap = set(endpoint_states) & set(lumped_states)
+        if overlap:
+            labels = sorted(endpoint.label() for endpoint in overlap)
+            raise RuntimeError(
+                "Endpoint states duplicated between ordinary network sources and "
+                f"lumped beds: {labels}."
+            )
+
+        endpoint_states.update(lumped_states)
 
         expected = self.network.all_vessel_endpoints()
         missing = expected - set(endpoint_states)

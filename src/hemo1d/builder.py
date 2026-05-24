@@ -9,6 +9,7 @@ from hemo1d.config import NetworkConfig, VesselConfig
 from hemo1d.core.backend import NP_BACKEND
 from hemo1d.core.parameters import BloodParameters, ModelParameters, VesselParameters
 from hemo1d.core.physics import Hemo1DPhysics
+from hemo1d.lumped import LumpedCapillaryBed
 from hemo1d.topology.graph import Junction, VascularNetwork
 from hemo1d.topology.endpoint import NetworkEndpoint
 from hemo1d.boundary.base import BoundaryCondition
@@ -56,6 +57,7 @@ def build_vascular_network(
     config: NetworkConfig,
     solver: SolverSettings,
     external_boundaries: dict[NetworkEndpoint, BoundaryCondition],
+    lumped_beds: list[LumpedCapillaryBed] | None = None,
 ) -> VascularNetwork:
     """Build a mutable solver network from declarative model state."""
 
@@ -80,6 +82,7 @@ def build_vascular_network(
         vessels=vessels,
         external_boundaries=external_boundaries,
         junctions=junctions,
+        lumped_beds=list(lumped_beds or []),
     )
 
 
