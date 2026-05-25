@@ -1,6 +1,6 @@
 # Hemo1D
 
-A 1D hemodynamic network solver using Continuous Galerkin and Discontinuous Galerkin finite element methods with FEniCSx. TEST
+A 1D hemodynamic network solver using Continuous Galerkin and Discontinuous Galerkin finite element methods with FEniCSx.
 
 ## Features
 
