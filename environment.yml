@@ -14,4 +14,7 @@ dependencies:
   - ruff
   - mypy
   - ipython
+  - ipykernel
+  - jupyter
+  - notebook
   - tqdm
