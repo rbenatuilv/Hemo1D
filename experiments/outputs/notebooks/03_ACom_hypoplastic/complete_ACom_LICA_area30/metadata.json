@@ -1,0 +1,36 @@
+{
+  "num_steps": 200000,
+  "solver": {
+    "cfl": 0.5773502691896257,
+    "dg_time_scheme": "rk2",
+    "dt": 1e-05,
+    "h": 0.1,
+    "max_steps": 1000000,
+    "method": "cg",
+    "num_cells": null,
+    "poly_order": 1,
+    "record_every": 10
+  },
+  "source_path": "configs/generated_notebooks/03_CoW_complete_ACom_LICA_area30.json",
+  "time": 2.0,
+  "vessels": [
+    "ACA",
+    "BAS",
+    "L-ACA_I",
+    "L-ACA_II",
+    "L-ICA_I",
+    "L-ICA_II",
+    "L-MCA",
+    "L-PCA_I",
+    "L-PCA_II",
+    "L-PCommA",
+    "R-ACA_I",
+    "R-ACA_II",
+    "R-ICA_I",
+    "R-ICA_II",
+    "R-MCA",
+    "R-PCA_I",
+    "R-PCA_II",
+    "R-PCommA"
+  ]
+}
