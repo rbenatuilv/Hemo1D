@@ -24,9 +24,6 @@ import hemo1d as hd
 
 MMHG_TO_DYN_CM2 = 1333.22
 
-def mmhg(value: float) -> float:
-    return value * MMHG_TO_DYN_CM2
-
 def dyn_to_mmhg(value: float) -> float:
     return value / MMHG_TO_DYN_CM2
 
@@ -35,19 +32,6 @@ TISSUE_VOLUME = 300.0        # cm^3 ≈ g, assuming density ≈ 1 g/mL
 Q_MEAN = 2.5                 # cm^3/s = 150 mL/min
 HEART_RATE = 1.0             # Hz = 60 bpm
 PULSATILITY = 0.25           # +/-25% around mean, always positive
-
-# Pressure targets.
-P_ART_MEAN = mmhg(80.0)
-P_CAP_TARGET = mmhg(35.0)
-P_VEN = mmhg(8.0)
-
-# Choose resistances so the steady state is exactly the target when P_out=80 mmHg.
-R_ART = (P_ART_MEAN - P_CAP_TARGET) / Q_MEAN
-R_VEN = (P_CAP_TARGET - P_VEN) / Q_MEAN
-
-# Choose compliance from a capillary-bed time constant tau = C * R_ven.
-TAU_CAP = 0.10               # seconds: damp pulsatility but still visible
-C_CAP = TAU_CAP / R_VEN
 
 
 def inlet_flow(t: float) -> float:
@@ -64,18 +48,6 @@ def main() -> None:
     model = hd.load_from_config(config_path)
 
     model.set_inlet(vessel_id="left_mca", kind="flow_rate", function=inlet_flow, side="left")
-
-    model.set_windkessel_outlet(
-        vessel_id="left_mca",
-        side="right",
-        bed_id="L_MCA_region",
-        R_art=R_ART,
-        C=C_CAP,
-        R_ven=R_VEN,
-        P_ven=P_VEN,
-        P0=P_CAP_TARGET,
-        tissue_volume=TISSUE_VOLUME,
-    )
 
     # dt may need adjustment depending on your mesh/order and local wave speed.
     model.set_solver(method="dg", h=0.20, dt=2.0e-5, poly_order=1, dg_time_scheme="rk2", record_every=250)

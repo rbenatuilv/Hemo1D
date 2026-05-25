@@ -16,5 +16,20 @@
       "left_bound": "inflow",
       "right_bound": "outflow"
     }
+  },
+  "capillary_beds": {
+    "terminal_bed": {
+      "outlets": [
+        {
+          "vessel_id": "vessel",
+          "R_art": 1000000.0
+        }
+      ],
+      "C": 1.0e-7,
+      "R_ven": 1000000.0,
+      "P_ven": 0.0,
+      "P0": 0.0,
+      "tissue_volume": 50.0
+    }
   }
 }

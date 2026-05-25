@@ -26,6 +26,8 @@ from hemo1d.boundary import (
 )
 from hemo1d.config import (
     BloodConfig,
+    CapillaryBedConfig,
+    CapillaryBedOutletConfig,
     JunctionConfig,
     NetworkConfig,
     VesselConfig,
@@ -53,6 +55,8 @@ __version__ = "0.1.0"
 __all__ = [
     "BloodConfig",
     "BloodParameters",
+    "CapillaryBedConfig",
+    "CapillaryBedOutletConfig",
     "CSVScalarFunction",
     "EndpointSide",
     "HemodynamicModel",

@@ -53,6 +53,36 @@ def write_two_vessel_config(tmp_path):
     return path
 
 
+def write_json_capillary_bed_config(tmp_path):
+    path = tmp_path / "json_capillary_bed.json"
+    path.write_text(
+        json.dumps(
+            {
+                "vessels": {
+                    "vessel": {
+                        "length": 1.0,
+                        "area0": 0.126,
+                        "beta": 0.060606e7,
+                        "left_bound": "inflow",
+                        "right_bound": "outflow",
+                    }
+                },
+                "capillary_beds": {
+                    "json_bed": {
+                        "outlets": [{"vessel_id": "vessel", "R_art": 1.0e6}],
+                        "C": 1.0e-7,
+                        "R_ven": 1.0e6,
+                        "P_ven": 0.0,
+                        "P0": 0.0,
+                        "tissue_volume": 50.0,
+                    }
+                },
+            }
+        )
+    )
+    return path
+
+
 def test_set_windkessel_outlet_replaces_default_outlet(tmp_path):
     model = hd.load_from_config(write_two_vessel_config(tmp_path))
     endpoint = NetworkEndpoint("v1", EndpointSide.RIGHT)
@@ -95,6 +125,29 @@ def test_add_capillary_bed_replaces_default_outlets(tmp_path):
     assert endpoint_1 not in model._boundaries
     assert endpoint_2 not in model._boundaries
     assert model._lumped_beds[0].endpoint_set() == {endpoint_1, endpoint_2}
+
+
+def test_json_capillary_bed_replaces_default_outlet(tmp_path):
+    model = hd.load_from_config(write_json_capillary_bed_config(tmp_path))
+    endpoint = NetworkEndpoint("vessel", EndpointSide.RIGHT)
+
+    assert endpoint not in model._boundaries
+    assert len(model._lumped_beds) == 1
+    assert model._lumped_beds[0].bed_id == "json_bed"
+    assert model._lumped_beds[0].endpoint_set() == {endpoint}
+
+
+def test_json_capillary_bed_diagnostics(tmp_path):
+    model = hd.load_from_config(write_json_capillary_bed_config(tmp_path))
+    model.set_inlet(vessel_id="vessel", kind="flow_rate", function=lambda t: 0.0)
+    model.set_solver(method="DG", h=0.5, dt=1.0e-5, poly_order=1, record_every=1)
+
+    result = model.solve(t_end=1.0e-5, show_progress=False)
+
+    assert result.capillary_bed_ids() == ["json_bed"]
+    samples = result.capillary_bed_history("json_bed")
+    assert len(samples) == 2
+    assert np.all(np.isfinite(result.capillary_bed_pressure("json_bed")))
 
 
 def test_capillary_bed_diagnostics_and_result_accessors(tmp_path):

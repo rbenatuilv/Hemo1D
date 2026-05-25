@@ -52,6 +52,7 @@ class HemodynamicModel:
         self._last_result: Results | None = None
 
         self._install_default_boundaries_from_config()
+        self._install_capillary_beds_from_config()
 
     @classmethod
     def from_config(cls, path: str | Path) -> HemodynamicModel:
@@ -350,6 +351,25 @@ class HemodynamicModel:
                     endpoint=endpoint,
                     kind="nonreflecting",
                 )
+
+    def _install_capillary_beds_from_config(self) -> None:
+        for bed in self.config.capillary_beds:
+            self.add_capillary_bed(
+                bed_id=bed.bed_id,
+                outlets=[
+                    {
+                        "vessel_id": outlet.vessel_id,
+                        "side": outlet.side,
+                        "R_art": outlet.resistance,
+                    }
+                    for outlet in bed.outlets
+                ],
+                C=bed.compliance,
+                R_ven=bed.venous_resistance,
+                P_ven=bed.venous_pressure,
+                P0=bed.initial_pressure,
+                tissue_volume=bed.tissue_volume,
+            )
 
     def _resolve_external_endpoint(
         self,

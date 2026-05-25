@@ -16,5 +16,20 @@
       "left_bound": "inflow",
       "right_bound": "outflow"
     }
+  },
+  "capillary_beds": {
+    "L_MCA_region": {
+      "outlets": [
+        {
+          "vessel_id": "left_mca",
+          "R_art": 23997.96
+        }
+      ],
+      "C": 6.945034772400098e-6,
+      "R_ven": 14398.776000000002,
+      "P_ven": 10665.76,
+      "P0": 46662.700000000004,
+      "tissue_volume": 300.0
+    }
   }
 }
