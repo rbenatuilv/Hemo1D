@@ -70,6 +70,7 @@ class HemodynamicModel:
         num_cells: int | dict[str, int] | None = None,
         cfl: float | None = None,
         dg_time_scheme: str = "rk2",
+        dg_flux: str = "lxf",
         record_every: int | None = None,
         max_steps: int | None = None,
     ) -> None:
@@ -83,6 +84,7 @@ class HemodynamicModel:
             num_cells=num_cells,
             cfl=self.solver_settings.cfl if cfl is None else cfl,
             dg_time_scheme=dg_time_scheme.lower(),  # type: ignore[arg-type]
+            dg_flux=dg_flux,
             record_every=(
                 self.solver_settings.record_every
                 if record_every is None

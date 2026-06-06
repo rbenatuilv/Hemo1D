@@ -29,6 +29,7 @@ class SolverSettings:
     num_cells: int | dict[str, int] | None = None
     cfl: float = float(np.sqrt(3.0) / 3.0)
     dg_time_scheme: Literal["euler", "rk2"] = "rk2"
+    dg_flux: str = "lxf"
     record_every: int = 1
     max_steps: int = 1_000_000
 
@@ -50,6 +51,14 @@ class SolverSettings:
             raise ValueError("record_every must be positive.")
         if self.max_steps <= 0:
             raise ValueError("max_steps must be positive.")
+
+        from hemo1d.solvers.dg.flux import canonicalize_dg_flux_scheme
+
+        object.__setattr__(
+            self,
+            "dg_flux",
+            canonicalize_dg_flux_scheme(self.dg_flux),
+        )
 
 
 def build_vascular_network(
@@ -141,6 +150,7 @@ def _create_solver_vessel(*, vessel: VesselConfig, solver: SolverSettings, num_c
             physics=physics,
             discretization=discretization,
             time_scheme=solver.dg_time_scheme,
+            flux_scheme=solver.dg_flux,
         )
     else:
         raise RuntimeError(f"Unexpected solver method: {solver.method}")

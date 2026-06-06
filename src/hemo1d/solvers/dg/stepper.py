@@ -9,6 +9,7 @@ from hemo1d.core.physics import Hemo1DPhysics
 from hemo1d.core.state import BoundaryState
 from hemo1d.solvers.base import VesselStepper
 from hemo1d.solvers.dg.discretization import DGFEMDiscretization
+from hemo1d.solvers.dg.flux import DGFluxScheme, canonicalize_dg_flux_scheme
 from hemo1d.solvers.dg.limiter import (
     DGLimiterConfig,
     DGLimiterStats,
@@ -52,13 +53,14 @@ class DGStepStats:
 
 class DGLaxFriedrichsStepper(VesselStepper):
     """
-    Explicit DG stepper with local Lax-Friedrichs/Rusanov interface flux.
+    Explicit DG stepper with selectable DG interface flux.
 
     Spatial discretization:
         polynomial DG on each cell, degree 0 or degree 1.
 
     Numerical flux:
-        local Lax-Friedrichs / Rusanov.
+        - "lxf": local Lax-Friedrichs / Rusanov
+        - "hll": HLL
 
     Time discretization:
         - "euler": forward Euler
@@ -88,6 +90,7 @@ class DGLaxFriedrichsStepper(VesselStepper):
         physics: Hemo1DPhysics,
         time_scheme: TimeScheme = "rk2",
         limiter_config: DGLimiterConfig | None = None,
+        flux_scheme: DGFluxScheme | str = "lxf",
     ) -> None:
         if time_scheme not in ("euler", "rk2"):
             raise ValueError("time_scheme must be either 'euler' or 'rk2'.")
@@ -95,6 +98,7 @@ class DGLaxFriedrichsStepper(VesselStepper):
         self.discretization = discretization
         self.physics = physics
         self.time_scheme = time_scheme
+        self.flux_scheme = canonicalize_dg_flux_scheme(flux_scheme)
 
         self.limiter = DGSlopeLimiter(
             self._default_limiter_config(limiter_config)
@@ -367,6 +371,7 @@ class DGLaxFriedrichsStepper(VesselStepper):
             residual_A=self._residual_A,
             residual_Q=self._residual_Q,
             interface_fluxes=self._interface_fluxes,
+            flux_scheme=self.flux_scheme,
         )
 
         np.matmul(residual_A, self._invM_T, out=dA_dt)
@@ -403,6 +408,7 @@ class DGLaxFriedrichsStepper(VesselStepper):
             right_boundary_state=right_boundary_state,
             weighted_basis_quad=self._weighted_basis_quad,
             weighted_dbasis_quad=self._weighted_dbasis_quad,
+            flux_scheme=self.flux_scheme,
         )
 
     def _limit_and_validate_state(self, state: DGState) -> DGLimiterStats:

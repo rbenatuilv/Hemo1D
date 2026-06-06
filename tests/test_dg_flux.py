@@ -7,7 +7,15 @@ from hemo1d.core.backend import NP_BACKEND
 from hemo1d.core.parameters import BloodParameters, ModelParameters, VesselParameters
 from hemo1d.core.physics import Hemo1DPhysics
 from hemo1d.core.state import EndpointSide
-from hemo1d.solvers.dg import DGFEMDiscretization, DGMeshConfig
+from hemo1d.solvers.dg import (
+    ConservativeState,
+    DGFEMDiscretization,
+    DGMeshConfig,
+    canonicalize_dg_flux_scheme,
+    hll_flux,
+    lax_friedrichs_flux,
+    physical_flux,
+)
 
 
 @pytest.fixture
@@ -24,6 +32,81 @@ def physics() -> Hemo1DPhysics:
         p_ext=0.0,
     )
     return Hemo1DPhysics(params, NP_BACKEND)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("lxf", "lxf"),
+        ("lax_friedrichs", "lxf"),
+        ("lax-friedrichs", "lxf"),
+        ("rusanov", "lxf"),
+        ("HLL", "hll"),
+    ],
+)
+def test_canonicalize_dg_flux_scheme_aliases(value: str, expected: str) -> None:
+    assert canonicalize_dg_flux_scheme(value) == expected
+
+
+def test_canonicalize_dg_flux_scheme_rejects_invalid_value() -> None:
+    with pytest.raises(ValueError, match="Invalid DG flux scheme"):
+        canonicalize_dg_flux_scheme("roe")
+
+
+def test_hll_flux_matches_physical_flux_for_identical_states(
+    physics: Hemo1DPhysics,
+) -> None:
+    state = ConservativeState(
+        area=float(physics.params.area0),
+        flow_rate=1.0e-4,
+    )
+
+    np.testing.assert_allclose(
+        hll_flux(physics, state, state),
+        physical_flux(physics, state),
+        rtol=1.0e-14,
+        atol=1.0e-14,
+    )
+
+
+def test_hll_flux_matches_direct_formula_for_discontinuity(
+    physics: Hemo1DPhysics,
+) -> None:
+    left = ConservativeState(
+        area=float(1.02 * physics.params.area0),
+        flow_rate=1.0e-4,
+    )
+    right = ConservativeState(
+        area=float(0.98 * physics.params.area0),
+        flow_rate=-5.0e-5,
+    )
+
+    actual = hll_flux(physics, left, right)
+    expected = _direct_hll_flux(physics, left, right)
+
+    assert actual.shape == (2,)
+    assert np.all(np.isfinite(actual))
+    np.testing.assert_allclose(actual, expected, rtol=1.0e-14, atol=1.0e-14)
+
+
+def test_hll_flux_falls_back_to_lax_friedrichs_for_degenerate_waves() -> None:
+    class TinyWavePhysics:
+        def flux(self, area, flow_rate):
+            return np.asarray([flow_rate, area + flow_rate], dtype=np.float64)
+
+        def eigenvalues(self, area, flow_rate):
+            return 1.0e-20, -1.0e-20
+
+    physics = TinyWavePhysics()
+    left = ConservativeState(area=1.0, flow_rate=0.25)
+    right = ConservativeState(area=1.1, flow_rate=-0.15)
+
+    np.testing.assert_allclose(
+        hll_flux(physics, left, right),  # type: ignore[arg-type]
+        lax_friedrichs_flux(physics, left, right),  # type: ignore[arg-type]
+        rtol=1.0e-14,
+        atol=1.0e-14,
+    )
 
 
 def test_dg_degree_one_mesh_data_shapes() -> None:
@@ -134,3 +217,35 @@ def test_interpolate_state_degree_one() -> None:
 def test_invalid_degree_raises() -> None:
     with pytest.raises(NotImplementedError):
         DGMeshConfig(length=1.0, num_cells=4, degree=2)
+
+
+def _direct_hll_flux(
+    physics: Hemo1DPhysics,
+    left: ConservativeState,
+    right: ConservativeState,
+) -> np.ndarray:
+    F_left = physical_flux(physics, left)
+    F_right = physical_flux(physics, right)
+
+    lambda_plus_left, lambda_minus_left = physics.eigenvalues(
+        left.area,
+        left.flow_rate,
+    )
+    lambda_plus_right, lambda_minus_right = physics.eigenvalues(
+        right.area,
+        right.flow_rate,
+    )
+
+    s_L = min(float(lambda_minus_left), float(lambda_minus_right))
+    s_R = max(float(lambda_plus_left), float(lambda_plus_right))
+
+    if 0.0 <= s_L:
+        return F_left
+    if s_R <= 0.0:
+        return F_right
+
+    return (
+        s_R * F_left
+        - s_L * F_right
+        + s_L * s_R * (right.as_array() - left.as_array())
+    ) / (s_R - s_L)

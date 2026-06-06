@@ -62,6 +62,13 @@ results.save("outputs/high_level_api")
 results.plot_probes("outputs/high_level_api/plots")
 ```
 
+DG uses local Lax-Friedrichs/Rusanov flux by default (`dg_flux="lxf"`). To use
+HLL instead:
+
+```python
+model.set_solver(method="DG", h=0.25, dt=1e-5, poly_order=1, dg_flux="hll")
+```
+
 See [QUICKSTART.md](QUICKSTART.md) and `examples/high_level_api.py` for fuller examples.
 
 ## Key Modules

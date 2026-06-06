@@ -80,6 +80,34 @@ def test_residual_is_zero_for_rest_state(
     np.testing.assert_allclose(residual_Q, 0.0, rtol=1.0e-12, atol=1.0e-12)
 
 
+def test_residual_is_zero_for_rest_state_with_hll_flux(
+    physics: Hemo1DPhysics,
+    discretization: DGFEMDiscretization,
+) -> None:
+    state = discretization.create_state(name="n")
+    discretization.interpolate_rest_state(state, physics)
+
+    boundary = BoundaryState(
+        area=physics.params.area0,
+        flow_rate=0.0,
+    )
+
+    stepper = DGLaxFriedrichsStepper(
+        discretization,
+        physics,
+        flux_scheme="hll",
+    )
+
+    residual_A, residual_Q = stepper.compute_residual(
+        state=state,
+        left_boundary_state=boundary,
+        right_boundary_state=boundary,
+    )
+
+    np.testing.assert_allclose(residual_A, 0.0, rtol=1.0e-12, atol=1.0e-12)
+    np.testing.assert_allclose(residual_Q, 0.0, rtol=1.0e-12, atol=1.0e-12)
+
+
 @pytest.mark.parametrize("degree", [0, 1])
 def test_optimized_residual_matches_einsum_reference(
     physics: Hemo1DPhysics,
@@ -118,6 +146,39 @@ def test_optimized_residual_matches_einsum_reference(
 
     np.testing.assert_allclose(residual_A, reference_A, rtol=1.0e-14, atol=1.0e-14)
     np.testing.assert_allclose(residual_Q, reference_Q, rtol=1.0e-14, atol=1.0e-14)
+
+
+def test_hll_interface_fluxes_have_expected_shape_and_are_finite(
+    physics: Hemo1DPhysics,
+    discretization: DGFEMDiscretization,
+) -> None:
+    state = discretization.create_state(name="n")
+
+    rng = np.random.default_rng(2024)
+    state.A[:, :] = physics.params.area0 * (1.0 + 0.01 * rng.random(state.A.shape))
+    state.Q[:, :] = 1.0e-4 * rng.normal(size=state.Q.shape)
+
+    left_boundary = BoundaryState(
+        area=float(state.A[0, 0]),
+        flow_rate=float(state.Q[0, 0]),
+    )
+    right_boundary = BoundaryState(
+        area=float(state.A[-1, -1]),
+        flow_rate=float(state.Q[-1, -1]),
+    )
+
+    fluxes = compute_interface_fluxes(
+        physics=physics,
+        basis_left=discretization.basis_at_left,
+        basis_right=discretization.basis_at_right,
+        state=state,
+        left_boundary_state=left_boundary,
+        right_boundary_state=right_boundary,
+        flux_scheme="hll",
+    )
+
+    assert fluxes.shape == (discretization.num_cells + 1, 2)
+    assert np.all(np.isfinite(fluxes))
 
 
 def test_rhs_is_zero_for_rest_state(

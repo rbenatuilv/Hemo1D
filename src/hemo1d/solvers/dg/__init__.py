@@ -2,6 +2,9 @@ from hemo1d.solvers.dg.discretization import DGFEMDiscretization, DGMeshConfig
 from hemo1d.solvers.dg.factory import create_dg_vessel
 from hemo1d.solvers.dg.flux import (
     ConservativeState,
+    DGFluxScheme,
+    canonicalize_dg_flux_scheme,
+    hll_flux,
     lax_friedrichs_flux,
     max_abs_characteristic_speed,
     physical_flux,
@@ -19,6 +22,7 @@ from hemo1d.solvers.dg.stepper import DGLaxFriedrichsStepper, DGRHS, DGStepStats
 __all__ = [
     "ConservativeState",
     "DGFEMDiscretization",
+    "DGFluxScheme",
     "DGMeshConfig",
     "DGLimiterConfig",
     "DGLimiterStats",
@@ -28,7 +32,9 @@ __all__ = [
     "DGLaxFriedrichsStepper",
     "DGState",
     "create_dg_vessel",
+    "canonicalize_dg_flux_scheme",
     "extract_dg_state_arrays",
+    "hll_flux",
     "lax_friedrichs_flux",
     "max_abs_characteristic_speed",
     "physical_flux",

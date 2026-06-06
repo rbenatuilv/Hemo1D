@@ -4,6 +4,7 @@ import numpy as np
 
 from hemo1d.core.physics import Hemo1DPhysics
 from hemo1d.core.state import BoundaryState
+from hemo1d.solvers.dg.flux import DGFluxScheme, canonicalize_dg_flux_scheme
 from hemo1d.solvers.dg.state import DGState
 
 
@@ -23,6 +24,7 @@ def compute_residual(
     residual_A: np.ndarray | None = None,
     residual_Q: np.ndarray | None = None,
     interface_fluxes: np.ndarray | None = None,
+    flux_scheme: DGFluxScheme | str = "lxf",
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Compute the raw DG residual H(U_h), before applying M^{-1}.
@@ -33,6 +35,8 @@ def compute_residual(
     Both arrays have shape:
         (num_cells, num_local_dofs)
     """
+    flux_scheme = canonicalize_dg_flux_scheme(flux_scheme)
+
     num_cells = state.num_cells
     num_local_dofs = state.num_local_dofs
 
@@ -65,6 +69,7 @@ def compute_residual(
         left_boundary_state=left_boundary_state,
         right_boundary_state=right_boundary_state,
         out=interface_fluxes,
+        flux_scheme=flux_scheme,
     )
 
     area_q = state.A @ basis_quad.T
@@ -99,12 +104,15 @@ def compute_interface_fluxes(
     left_boundary_state: BoundaryState,
     right_boundary_state: BoundaryState,
     out: np.ndarray | None = None,
+    flux_scheme: DGFluxScheme | str = "lxf",
 ) -> np.ndarray:
     """
     Compute numerical flux at every interface.
 
     fluxes[i] is oriented in the positive z direction.
     """
+    flux_scheme = canonicalize_dg_flux_scheme(flux_scheme)
+
     left_trace_A = state.A @ basis_left
     left_trace_Q = state.Q @ basis_left
     right_trace_A = state.A @ basis_right
@@ -149,6 +157,78 @@ def compute_interface_fluxes(
     else:
         fluxes = out
 
+    _fill_lax_friedrichs_fluxes(
+        fluxes=fluxes,
+        flux_left=flux_left,
+        flux_right=flux_right,
+        speed_max=speed_max,
+        left_A=left_A,
+        left_Q=left_Q,
+        right_A=right_A,
+        right_Q=right_Q,
+    )
+
+    if flux_scheme == "lxf":
+        return fluxes
+
+    s_L = np.minimum(lambda_minus_left, lambda_minus_right)
+    s_R = np.maximum(lambda_plus_left, lambda_plus_right)
+    finite_waves = np.isfinite(s_L) & np.isfinite(s_R)
+
+    left_mask = finite_waves & (0.0 <= s_L)
+    right_mask = finite_waves & ~left_mask & (s_R <= 0.0)
+
+    fluxes[left_mask, 0] = flux_left[0][left_mask]
+    fluxes[left_mask, 1] = flux_left[1][left_mask]
+    fluxes[right_mask, 0] = flux_right[0][right_mask]
+    fluxes[right_mask, 1] = flux_right[1][right_mask]
+
+    star_candidate = finite_waves & ~(left_mask | right_mask)
+    denom = s_R - s_L
+    scale = np.maximum(1.0, np.maximum(np.abs(s_L), np.abs(s_R)))
+    valid_star = (
+        star_candidate
+        & np.isfinite(denom)
+        & (np.abs(denom) > np.finfo(np.float64).eps * scale)
+    )
+
+    if np.any(valid_star):
+        hll_0 = (
+            s_R[valid_star] * flux_left[0][valid_star]
+            - s_L[valid_star] * flux_right[0][valid_star]
+            + s_L[valid_star]
+            * s_R[valid_star]
+            * (right_A[valid_star] - left_A[valid_star])
+        ) / denom[valid_star]
+        hll_1 = (
+            s_R[valid_star] * flux_left[1][valid_star]
+            - s_L[valid_star] * flux_right[1][valid_star]
+            + s_L[valid_star]
+            * s_R[valid_star]
+            * (right_Q[valid_star] - left_Q[valid_star])
+        ) / denom[valid_star]
+
+        finite_hll = np.isfinite(hll_0) & np.isfinite(hll_1)
+        if np.any(finite_hll):
+            star_indices = np.nonzero(valid_star)[0]
+            finite_indices = star_indices[finite_hll]
+            fluxes[finite_indices, 0] = hll_0[finite_hll]
+            fluxes[finite_indices, 1] = hll_1[finite_hll]
+
+    return fluxes
+
+
+def _fill_lax_friedrichs_fluxes(
+    *,
+    fluxes: np.ndarray,
+    flux_left: np.ndarray,
+    flux_right: np.ndarray,
+    speed_max: np.ndarray,
+    left_A: np.ndarray,
+    left_Q: np.ndarray,
+    right_A: np.ndarray,
+    right_Q: np.ndarray,
+) -> None:
     fluxes[:, 0] = (
         0.5 * (flux_left[0] + flux_right[0])
         - 0.5 * speed_max * (right_A - left_A)
@@ -157,8 +237,6 @@ def compute_interface_fluxes(
         0.5 * (flux_left[1] + flux_right[1])
         - 0.5 * speed_max * (right_Q - left_Q)
     )
-
-    return fluxes
 
 
 def max_speed_in_state(
