@@ -24,8 +24,23 @@ import hemo1d as hd
 
 MMHG_TO_DYN_CM2 = 1333.22
 
+
 def dyn_to_mmhg(value: float) -> float:
     return value / MMHG_TO_DYN_CM2
+
+
+METHOD = "dg"
+DG_FLUX = "lxf"
+DG_TIME_SCHEME = "rk2"
+
+H = 0.20
+DT = 2.0e-5
+T_END = 1.5
+POLY_ORDER = 1
+
+RECORD_EVERY = 250
+OUTPUT_DIR = None
+SHOW_PLOTS = False
 
 # Target mean perfusion: 50 mL/100g/min over a 300 g region.
 TISSUE_VOLUME = 300.0        # cm^3 ≈ g, assuming density ≈ 1 g/mL
@@ -47,16 +62,44 @@ def main() -> None:
     config_path = Path("examples/configs/physiological_mca_bed_config.json")
     model = hd.load_from_config(config_path)
 
-    model.set_inlet(vessel_id="left_mca", kind="flow_rate", function=inlet_flow, side="left")
+    model.set_inlet(
+        vessel_id="left_mca",
+        kind="flow_rate",
+        function=inlet_flow,
+        side="left",
+    )
 
     # dt may need adjustment depending on your mesh/order and local wave speed.
-    model.set_solver(method="dg", h=0.20, dt=2.0e-5, poly_order=1, dg_time_scheme="rk2", record_every=250)
+    model.set_solver(
+        method=METHOD,
+        h=H,
+        dt=DT,
+        poly_order=POLY_ORDER,
+        dg_time_scheme=DG_TIME_SCHEME,
+        dg_flux=DG_FLUX,
+        record_every=RECORD_EVERY,
+    )
 
     length = model.config.vessel("left_mca").length
     model.add_probe(vessel_id="left_mca", position=0.5 * length, name="mid_mca")
     model.add_probe(vessel_id="left_mca", position=0.95 * length, name="distal_mca")
 
-    results = model.solve(t_end=1.5, show_progress=True)
+    results = model.solve(t_end=T_END, show_progress=True)
+
+    if METHOD == "dg":
+        name = f"method_{METHOD}_{DG_FLUX}"
+    else:
+        name = f"method_{METHOD}"
+
+    output_dir = OUTPUT_DIR or Path(
+        f"examples/outputs/physiological_mca_bed/{name}"
+    )
+
+    results.save(output_dir)
+    results.plot_probes(output_dir / "plots", show=SHOW_PLOTS)
+    if results.capillary_bed_ids():
+        results.plot_capillary_beds(output_dir / "plots", show=SHOW_PLOTS)
+
     bed = results.capillary_bed_history("L_MCA_region")
 
     # Use the second half of the simulation to skip the initial transient.
@@ -75,7 +118,14 @@ def main() -> None:
     print(f"Mean inflow:      {mean_qin:.3f} mL/s = {60.0 * mean_qin:.1f} mL/min")
     print(f"Mean venous out:  {mean_qven:.3f} mL/s = {60.0 * mean_qven:.1f} mL/min")
     print(f"Mean perfusion:   {mean_perf:.1f} mL/100g/min")
-    print(f"P_cap range tail: {dyn_to_mmhg(min(s.pressure for s in tail)):.2f}–{dyn_to_mmhg(max(s.pressure for s in tail)):.2f} mmHg")
+    min_pcap = min(s.pressure for s in tail)
+    max_pcap = max(s.pressure for s in tail)
+    print(
+        f"P_cap range tail: {dyn_to_mmhg(min_pcap):.2f}–"
+        f"{dyn_to_mmhg(max_pcap):.2f} mmHg"
+    )
+    print(f"\nFinished at t={results.time:.6e} with {results.num_steps} steps")
+    print(f"Saved outputs to {output_dir}")
 
 
 if __name__ == "__main__":

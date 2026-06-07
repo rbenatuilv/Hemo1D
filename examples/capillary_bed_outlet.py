@@ -4,66 +4,82 @@ Single-vessel example with a lumped capillary-bed outlet.
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 
 import hemo1d as hd
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Single-vessel capillary-bed outlet example"
-    )
-    parser.add_argument("--method", choices=("cg", "dg"), default="dg")
-    parser.add_argument("--h", type=float, default=0.0625)
-    parser.add_argument("--dt", type=float, default=1.0e-5)
-    parser.add_argument("--t-end", type=float, default=5.0e-3)
-    parser.add_argument("--poly-order", type=int, default=1)
-    parser.add_argument("--dg-time-scheme", choices=("rk2", "euler"), default="rk2")
-    parser.add_argument("--record-every", type=int, default=5)
-    parser.add_argument("--show-plots", action="store_true")
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("examples/outputs/capillary_bed_outlet"),
-    )
-    args = parser.parse_args()
+METHOD = "dg"
+DG_FLUX = "lxf"
+DG_TIME_SCHEME = "rk2"
 
-    model = hd.load_from_config("examples/configs/capillary_bed_outlet.json")
+H = 0.0625
+DT = 1.0e-5
+T_END = 5.0e-3
+POLY_ORDER = 1
+
+OUTLET_MODEL = "capillary-bed"
+RECORD_EVERY = 5
+OUTPUT_DIR = None
+SHOW_PLOTS = False
+
+
+def main() -> None:
+    config_path = (
+        "examples/configs/capillary_bed_outlet.json"
+        if OUTLET_MODEL == "capillary-bed"
+        else "examples/configs/single_vessel.json"
+    )
+    model = hd.load_from_config(config_path)
 
     q_in = hd.create_positive_sine_inflow(
         amplitude=0.005,
         duration=2.0e-3,
     )
     model.set_inlet(vessel_id="vessel", kind="flow_rate", function=q_in)
+    if OUTLET_MODEL == "nonreflecting":
+        model.set_outlet(vessel_id="vessel", kind="nonreflecting")
 
     model.set_solver(
-        method=args.method,
-        h=args.h,
-        dt=args.dt,
-        poly_order=args.poly_order,
-        record_every=args.record_every,
+        method=METHOD,
+        h=H,
+        dt=DT,
+        poly_order=POLY_ORDER,
+        dg_time_scheme=DG_TIME_SCHEME,
+        dg_flux=DG_FLUX,
+        record_every=RECORD_EVERY,
     )
 
     length = model.config.vessel("vessel").length
     model.add_probe(vessel_id="vessel", position=0.1 * length, name="inlet")
     model.add_probe(vessel_id="vessel", position=0.5 * length, name="mid")
-    model.add_probe(vessel_id="vessel", position=length*0.9, name="outlet")
+    model.add_probe(vessel_id="vessel", position=length * 0.9, name="outlet")
 
-    results = model.solve(t_end=args.t_end, show_progress=True)
-    results.save(args.output_dir)
-    results.plot_probes(args.output_dir / "plots", show=args.show_plots)
-    results.plot_capillary_beds(args.output_dir / "plots", show=args.show_plots)
+    results = model.solve(t_end=T_END, show_progress=True)
 
-    bed_samples = results.capillary_bed_history("terminal_bed")
-    final_bed = bed_samples[-1]
+    outlet_name = OUTLET_MODEL.replace("-", "_")
+    if METHOD == "dg":
+        name = f"method_{METHOD}_{DG_FLUX}_{outlet_name}"
+    else:
+        name = f"method_{METHOD}_{outlet_name}"
+
+    output_dir = OUTPUT_DIR or Path(f"examples/outputs/capillary_bed_outlet/{name}")
+
+    results.save(output_dir)
+    results.plot_probes(output_dir / "plots", show=SHOW_PLOTS)
+    if results.capillary_bed_ids():
+        results.plot_capillary_beds(output_dir / "plots", show=SHOW_PLOTS)
+
+    bed_ids = results.capillary_bed_ids()
 
     print(f"Finished at t={results.time:.6e} with {results.num_steps} steps")
-    print(f"Final bed pressure: {final_bed.pressure:.6e}")
-    print(f"Final total inflow: {final_bed.total_inflow:.6e}")
-    print(f"Final venous outflow: {final_bed.venous_outflow:.6e}")
-    print(f"Final regional perfusion: {final_bed.regional_perfusion:.6e}")
-    print(f"Saved outputs to {args.output_dir}")
+    if bed_ids:
+        final_bed = results.capillary_bed_history(bed_ids[0])[-1]
+        print(f"Final bed pressure: {final_bed.pressure:.6e}")
+        print(f"Final total inflow: {final_bed.total_inflow:.6e}")
+        print(f"Final venous outflow: {final_bed.venous_outflow:.6e}")
+        print(f"Final regional perfusion: {final_bed.regional_perfusion:.6e}")
+    print(f"Saved outputs to {output_dir}")
 
 
 def configure_shared_bed_variant(model) -> None:

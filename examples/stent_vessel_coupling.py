@@ -1,24 +1,25 @@
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 
 import hemo1d as hd
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Stent-vessel coupling simulation")
-    parser.add_argument("--method", choices=("cg", "dg"), default="cg")
-    parser.add_argument("--h", type=float, default=0.1)
-    parser.add_argument("--dt", type=float, default=1.0e-5)
-    parser.add_argument("--t-end", type=float, default=1.5)
-    parser.add_argument("--poly-order", type=int, default=1)
-    parser.add_argument("--dg-time-scheme", choices=("rk2", "euler"), default="rk2")
-    parser.add_argument("--record-every", type=int, default=1)
-    parser.add_argument("--output-dir", type=Path, default=None)
-    parser.add_argument("--show-plots", action="store_true")
-    args = parser.parse_args()
+METHOD = "cg"
+DG_FLUX = "lxf"
+DG_TIME_SCHEME = "rk2"
 
+H = 0.1
+DT = 1.0e-5
+T_END = 1.5
+POLY_ORDER = 1
+
+RECORD_EVERY = 1
+OUTPUT_DIR = None
+SHOW_PLOTS = False
+
+
+def main() -> None:
     model = hd.load_from_config("examples/configs/stent_vessel_coupling.json")
 
     q_in = hd.create_periodic_positive_sine_inflow(
@@ -28,26 +29,47 @@ def main() -> None:
     )
 
     model.set_inlet(vessel_id="upstream", kind="flowrate", function=q_in)
-    model.set_outlet(vessel_id="downstream", kind="nonreflecting")
+
+    model.set_windkessel_outlet(
+        vessel_id="downstream",
+        R_art=1.0e4,
+        C=1.0e-4,
+        R_ven=1.0e4,
+        P_ven=0.0,
+        P0=0.0,
+        tissue_volume=100.0,
+        bed_id="downstream_bed",
+    )
 
     model.set_solver(
-        method=args.method,
-        h=args.h,
-        dt=args.dt,
-        poly_order=args.poly_order,
-        dg_time_scheme=args.dg_time_scheme,
-        record_every=args.record_every,
+        method=METHOD,
+        h=H,
+        dt=DT,
+        poly_order=POLY_ORDER,
+        dg_time_scheme=DG_TIME_SCHEME,
+        dg_flux=DG_FLUX,
+        record_every=RECORD_EVERY,
     )
 
     model.add_probe(vessel_id="upstream", position=40.0, name="inlet")
     model.add_probe(vessel_id="stent", position=5.0, name="stent")
     model.add_probe(vessel_id="downstream", position=20.0, name="outlet")
 
-    results = model.solve(t_end=args.t_end, show_progress=True)
+    results = model.solve(t_end=T_END, show_progress=True)
 
-    output_dir = args.output_dir or Path(f"examples/outputs/stent_vessel_coupling_{args.method}")
+    if METHOD == "dg":
+        name = f"method_{METHOD}_{DG_FLUX}"
+    else:
+        name = f"method_{METHOD}"
+
+    output_dir = OUTPUT_DIR or Path(
+        f"examples/outputs/stent_vessel_coupling/{name}"
+    )
+
     results.save(output_dir)
-    results.plot_probes(output_dir / "plots", show=args.show_plots)
+    results.plot_probes(output_dir / "plots", show=SHOW_PLOTS)
+    if results.capillary_bed_ids():
+        results.plot_capillary_beds(output_dir / "plots", show=SHOW_PLOTS)
 
     print(f"Finished at t={results.time:.6e} with {results.num_steps} steps")
     print(f"Saved outputs to {output_dir}")
