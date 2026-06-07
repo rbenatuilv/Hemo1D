@@ -11,7 +11,7 @@ DG_TIME_SCHEME = "rk2"
 
 H = 0.1
 DT = 1.0e-5
-T_END = 1.5
+T_END = 1.0
 POLY_ORDER = 1
 
 RECORD_EVERY = 1
