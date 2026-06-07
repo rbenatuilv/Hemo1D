@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from hemo1d.boundary import BoundaryCondition
 from hemo1d.core.state import EndpointSide
+from hemo1d.lumped import LumpedCapillaryBed
 from hemo1d.topology.endpoint import NetworkEndpoint
 from hemo1d.solvers.vessel import Vessel
 
@@ -62,6 +63,7 @@ class VascularNetwork:
     vessels: dict[str, Vessel]
     external_boundaries: dict[NetworkEndpoint, BoundaryCondition] = field(default_factory=dict)
     junctions: list[Junction] = field(default_factory=list)
+    lumped_beds: list[LumpedCapillaryBed] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.validate()
@@ -70,8 +72,13 @@ class VascularNetwork:
         self._validate_vessel_ids()
         self._validate_junction_endpoints()
         self._validate_external_boundary_endpoints()
+        self._validate_lumped_bed_endpoints()
         self._validate_no_duplicate_junction_endpoints()
+        self._validate_no_duplicate_lumped_bed_ids()
+        self._validate_no_duplicate_lumped_bed_endpoints()
         self._validate_no_endpoint_is_both_boundary_and_junction()
+        self._validate_no_endpoint_is_both_boundary_and_lumped_bed()
+        self._validate_no_endpoint_is_both_junction_and_lumped_bed()
 
     def _validate_vessel_ids(self) -> None:
         for vessel_id, vessel in self.vessels.items():
@@ -99,6 +106,11 @@ class VascularNetwork:
         for endpoint in self.external_boundaries:
             self._validate_endpoint_exists(endpoint)
 
+    def _validate_lumped_bed_endpoints(self) -> None:
+        for bed in self.lumped_beds:
+            for endpoint in bed.endpoint_set():
+                self._validate_endpoint_exists(endpoint)
+
     def _junction_endpoints(self) -> list[NetworkEndpoint]:
         endpoints: list[NetworkEndpoint] = []
 
@@ -107,11 +119,31 @@ class VascularNetwork:
 
         return endpoints
 
+    def _lumped_bed_endpoints(self) -> list[NetworkEndpoint]:
+        endpoints: list[NetworkEndpoint] = []
+
+        for bed in self.lumped_beds:
+            endpoints.extend(bed.endpoint_set())
+
+        return endpoints
+
     def _validate_no_duplicate_junction_endpoints(self) -> None:
         endpoints = self._junction_endpoints()
 
         if len(endpoints) != len(set(endpoints)):
             raise ValueError("At least one endpoint appears in more than one junction.")
+
+    def _validate_no_duplicate_lumped_bed_ids(self) -> None:
+        bed_ids = [bed.bed_id for bed in self.lumped_beds]
+
+        if len(bed_ids) != len(set(bed_ids)):
+            raise ValueError("Lumped capillary bed ids must be distinct.")
+
+    def _validate_no_duplicate_lumped_bed_endpoints(self) -> None:
+        endpoints = self._lumped_bed_endpoints()
+
+        if len(endpoints) != len(set(endpoints)):
+            raise ValueError("At least one endpoint appears in more than one lumped bed.")
 
     def _validate_no_endpoint_is_both_boundary_and_junction(self) -> None:
         junction_endpoints = set(self._junction_endpoints())
@@ -125,6 +157,31 @@ class VascularNetwork:
                 f"Endpoints cannot be both external boundaries and junction endpoints: {labels}."
             )
 
+    def _validate_no_endpoint_is_both_boundary_and_lumped_bed(self) -> None:
+        bed_endpoints = set(self._lumped_bed_endpoints())
+        boundary_endpoints = set(self.external_boundaries)
+
+        overlap = bed_endpoints & boundary_endpoints
+
+        if overlap:
+            labels = sorted(endpoint.label() for endpoint in overlap)
+            raise ValueError(
+                "Endpoints cannot be both external boundaries and lumped bed "
+                f"endpoints: {labels}."
+            )
+
+    def _validate_no_endpoint_is_both_junction_and_lumped_bed(self) -> None:
+        bed_endpoints = set(self._lumped_bed_endpoints())
+        junction_endpoints = set(self._junction_endpoints())
+
+        overlap = bed_endpoints & junction_endpoints
+
+        if overlap:
+            labels = sorted(endpoint.label() for endpoint in overlap)
+            raise ValueError(
+                f"Endpoints cannot be both junction and lumped bed endpoints: {labels}."
+            )
+
     def endpoint_state_map_keys(self) -> set[NetworkEndpoint]:
         """
         Return all endpoints that must receive a BoundaryState during a time step.
@@ -133,6 +190,9 @@ class VascularNetwork:
 
         for junction in self.junctions:
             keys.update(junction.endpoints)
+
+        for bed in self.lumped_beds:
+            keys.update(bed.endpoint_set())
 
         return keys
 
@@ -160,13 +220,13 @@ class VascularNetwork:
 
     def unassigned_endpoints(self) -> set[NetworkEndpoint]:
         """
-        Return vessel endpoints not assigned to either an external boundary or a junction.
+        Return endpoints not assigned to a boundary, junction, or lumped bed.
         """
         return self.all_vessel_endpoints() - self.endpoint_state_map_keys()
 
     def is_complete(self) -> bool:
         """
-        Whether every vessel endpoint is assigned to a boundary or junction.
+        Whether every vessel endpoint is assigned to a boundary, junction, or lumped bed.
         """
         return len(self.unassigned_endpoints()) == 0
 

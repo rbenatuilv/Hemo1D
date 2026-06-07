@@ -1,10 +1,23 @@
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 
 import hemo1d as hd
 
+
+METHOD = "cg"
+DG_FLUX = "lxf"
+DG_TIME_SCHEME = "rk2"
+
+H = 0.0625
+DT = 1.0e-5
+T_END = 3.0
+POLY_ORDER = 1
+
+OUTLET_MODEL = "capillary-bed"
+RECORD_EVERY = 10
+OUTPUT_DIR = None
+SHOW_PLOTS = False
 
 SELECTED_PROBE_VESSELS = (
     "BAS",
@@ -29,19 +42,12 @@ SELECTED_PROBE_VESSELS = (
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Real network simulation")
-    parser.add_argument("--method", choices=("cg", "dg"), default="cg")
-    parser.add_argument("--h", type=float, default=0.125)
-    parser.add_argument("--dt", type=float, default=1.0e-5)
-    parser.add_argument("--t-end", type=float, default=1.0)
-    parser.add_argument("--poly-order", type=int, default=1)
-    parser.add_argument("--dg-time-scheme", choices=("rk2", "euler"), default="rk2")
-    parser.add_argument("--record-every", type=int, default=10)
-    parser.add_argument("--output-dir", type=Path, default=None)
-    parser.add_argument("--show-plots", action="store_true")
-    args = parser.parse_args()
-
-    model = hd.load_from_config("data/network.json")
+    config_path = (
+        "examples/configs/CoW_normal.json"
+        if OUTLET_MODEL == "capillary-bed"
+        else "examples/configs/CoW_no_capillaries.json"
+    )
+    model = hd.load_from_config(config_path)
 
     for vessel_id in ("BAS", "L-ICA_I", "R-ICA_I"):
         velocity = hd.read_velocity_csv(
@@ -52,12 +58,13 @@ def main() -> None:
         model.set_inlet(vessel_id=vessel_id, kind="velocity", function=velocity)
 
     model.set_solver(
-        method=args.method,
-        h=args.h,
-        dt=args.dt,
-        poly_order=args.poly_order,
-        dg_time_scheme=args.dg_time_scheme,
-        record_every=args.record_every,
+        method=METHOD,
+        h=H,
+        dt=DT,
+        poly_order=POLY_ORDER,
+        dg_time_scheme=DG_TIME_SCHEME,
+        dg_flux=DG_FLUX,
+        record_every=RECORD_EVERY,
     )
 
     for vessel_id in SELECTED_PROBE_VESSELS:
@@ -68,11 +75,20 @@ def main() -> None:
         model.add_probe(vessel_id=vessel_id, position=0.5 * length, name="mid")
         model.add_probe(vessel_id=vessel_id, position=length, name="right")
 
-    results = model.solve(t_end=args.t_end, show_progress=True)
+    results = model.solve(t_end=T_END, show_progress=True)
 
-    output_dir = args.output_dir or Path(f"examples/outputs/real_network_{args.method}")
+    outlet_name = OUTLET_MODEL.replace("-", "_")
+    if METHOD == "dg":
+        name = f"method_{METHOD}_{DG_FLUX}_{outlet_name}"
+    else:
+        name = f"method_{METHOD}_{outlet_name}"
+
+    output_dir = OUTPUT_DIR or Path(f"examples/outputs/real_network/{name}")
+
     results.save(output_dir)
-    results.plot_probes(output_dir / "plots", show=args.show_plots)
+    results.plot_probes(output_dir / "plots", show=SHOW_PLOTS)
+    if results.capillary_bed_ids():
+        results.plot_capillary_beds(output_dir / "plots", show=SHOW_PLOTS)
 
     print(f"Finished at t={results.time:.6e} with {results.num_steps} steps")
     print(f"Saved outputs to {output_dir}")

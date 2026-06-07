@@ -55,12 +55,50 @@ class JunctionConfig:
 
 
 @dataclass(frozen=True)
+class CapillaryBedOutletConfig:
+    """Declarative terminal endpoint feeding a lumped capillary bed."""
+
+    vessel_id: str
+    resistance: float
+    side: EndpointSide | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "vessel_id", str(self.vessel_id))
+        object.__setattr__(self, "resistance", float(self.resistance))
+
+
+@dataclass(frozen=True)
+class CapillaryBedConfig:
+    """Declarative lumped capillary bed coupled to one or more outlets."""
+
+    bed_id: str
+    outlets: tuple[CapillaryBedOutletConfig, ...]
+    compliance: float
+    venous_resistance: float
+    venous_pressure: float
+    initial_pressure: float | None = None
+    tissue_volume: float | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "bed_id", str(self.bed_id))
+        object.__setattr__(self, "outlets", tuple(self.outlets))
+        object.__setattr__(self, "compliance", float(self.compliance))
+        object.__setattr__(self, "venous_resistance", float(self.venous_resistance))
+        object.__setattr__(self, "venous_pressure", float(self.venous_pressure))
+        if self.initial_pressure is not None:
+            object.__setattr__(self, "initial_pressure", float(self.initial_pressure))
+        if self.tissue_volume is not None:
+            object.__setattr__(self, "tissue_volume", float(self.tissue_volume))
+
+
+@dataclass(frozen=True)
 class NetworkConfig:
     """Validated network configuration independent of any solver state."""
 
     vessels: dict[str, VesselConfig]
     junctions: list[JunctionConfig] = field(default_factory=list)
     source_path: Path | None = None
+    capillary_beds: list[CapillaryBedConfig] = field(default_factory=list)
 
     def vessel(self, vessel_id: str) -> VesselConfig:
         try:
@@ -95,6 +133,8 @@ class NetworkConfig:
 
 __all__ = [
     "BloodConfig",
+    "CapillaryBedConfig",
+    "CapillaryBedOutletConfig",
     "JunctionConfig",
     "NetworkConfig",
     "VesselConfig",

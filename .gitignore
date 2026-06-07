@@ -1,6 +1,7 @@
 # Others
 *.csv
 *:Zone.Identifier
+run_logs
 
 
 # Byte-compiled / optimized / DLL files

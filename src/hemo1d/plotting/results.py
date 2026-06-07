@@ -76,6 +76,69 @@ def plot_vessel_probe_histories(
         )
 
 
+def plot_capillary_bed_history(
+    *,
+    output_dir: Path | None,
+    samples: list[Any],
+    bed_id: str,
+    close: bool = False,
+) -> None:
+    """Plot recorded lumped capillary-bed histories."""
+
+    if not samples:
+        return
+
+    times = np.array([sample.time for sample in samples])
+
+    plt.figure()
+    plt.plot(times, [sample.pressure for sample in samples], label="bed pressure")
+    plt.xlabel("t [s]")
+    plt.ylabel("P")
+    plt.title(f"Capillary-bed pressure: {bed_id}")
+    plt.grid(True)
+    plt.legend()
+    _finish_current_figure(
+        output_dir,
+        f"{bed_id}_capillary_bed_pressure_history.png",
+        close=close,
+    )
+
+    plt.figure()
+    plt.plot(times, [sample.total_inflow for sample in samples], label="total inflow")
+    plt.plot(times, [sample.venous_outflow for sample in samples], label="venous outflow")
+    for endpoint in _capillary_bed_endpoints(samples):
+        values = [
+            sample.endpoint_inflows.get(endpoint, np.nan)
+            for sample in samples
+        ]
+        plt.plot(times, values, "--", label=f"inflow {endpoint.label()}")
+    plt.xlabel("t [s]")
+    plt.ylabel("Q [cm^3/s]")
+    plt.title(f"Capillary-bed flow histories: {bed_id}")
+    plt.grid(True)
+    plt.legend()
+    _finish_current_figure(
+        output_dir,
+        f"{bed_id}_capillary_bed_flow_history.png",
+        close=close,
+    )
+
+    regional_perfusion = [sample.regional_perfusion for sample in samples]
+    if all(value is not None for value in regional_perfusion):
+        plt.figure()
+        plt.plot(times, regional_perfusion, label="regional perfusion")
+        plt.xlabel("t [s]")
+        plt.ylabel("perfusion [1/s]")
+        plt.title(f"Capillary-bed regional perfusion: {bed_id}")
+        plt.grid(True)
+        plt.legend()
+        _finish_current_figure(
+            output_dir,
+            f"{bed_id}_capillary_bed_regional_perfusion_history.png",
+            close=close,
+        )
+
+
 def plot_junction_flow_split(
     *,
     output_dir: Path,
@@ -168,3 +231,27 @@ def _plot_probe_quantity_history(
         save_current_figure(output_dir, filename, close=close)
     else:
         plt.close()
+
+
+def _capillary_bed_endpoints(samples: list[Any]) -> list[Any]:
+    endpoints = {
+        endpoint
+        for sample in samples
+        for endpoint in getattr(sample, "endpoint_inflows", {})
+    }
+    return sorted(endpoints, key=lambda endpoint: endpoint.label())
+
+
+def _finish_current_figure(
+    output_dir: Path | None,
+    filename: str,
+    *,
+    close: bool,
+) -> None:
+    if output_dir is None:
+        plt.tight_layout()
+        if close:
+            plt.close()
+        return
+
+    save_current_figure(output_dir, filename, close=close)

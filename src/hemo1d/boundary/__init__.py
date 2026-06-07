@@ -10,6 +10,7 @@ from hemo1d.boundary.inflow import (
     create_pulsatile_inflow,
     create_sinusoidal_inflow,
     create_periodic_positive_sine_inflow,
+    create_arterial_pressure_inflow,
 )
 from hemo1d.boundary.junction import (
     JunctionData,
@@ -34,6 +35,7 @@ __all__ = [
     "create_pulsatile_inflow",
     "create_sinusoidal_inflow",
     "create_periodic_positive_sine_inflow",
+    "create_arterial_pressure_inflow",
     "compatibility_target",
     "PrescribedFlowBoundary",
     "PrescribedAreaBoundary",

@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from hemo1d.io import (
     write_diagnostics_csv,
     write_probe_history_csv,
@@ -35,6 +37,58 @@ class Results:
     @property
     def num_steps(self) -> int:
         return int(self.raw.num_steps)
+
+    def capillary_bed_history(self, bed_id: str) -> list[Any]:
+        """Return diagnostic samples for one lumped capillary bed."""
+
+        samples = [
+            sample.lumped_bed_samples[bed_id]
+            for sample in self.history.diagnostics
+            if bed_id in getattr(sample, "lumped_bed_samples", {})
+        ]
+        if not samples:
+            known = sorted(
+                {
+                    bed
+                    for sample in self.history.diagnostics
+                    for bed in getattr(sample, "lumped_bed_samples", {})
+                }
+            )
+            raise KeyError(
+                f"No capillary bed history for {bed_id!r}. "
+                f"Available beds: {known}."
+            )
+        return samples
+
+    def capillary_bed_ids(self) -> list[str]:
+        """Return ids for recorded lumped capillary beds."""
+
+        return sorted(
+            {
+                bed_id
+                for sample in self.history.diagnostics
+                for bed_id in getattr(sample, "lumped_bed_samples", {})
+            }
+        )
+
+    def capillary_bed_pressure(self, bed_id: str) -> np.ndarray:
+        """Return the recorded bed pressure time series."""
+
+        return np.array(
+            [sample.pressure for sample in self.capillary_bed_history(bed_id)],
+            dtype=float,
+        )
+
+    def regional_perfusion(self, bed_id: str) -> np.ndarray:
+        """Return regional perfusion history for a bed with tissue_volume set."""
+
+        samples = self.capillary_bed_history(bed_id)
+        if any(sample.regional_perfusion is None for sample in samples):
+            raise ValueError(
+                f"Capillary bed {bed_id!r} has no regional perfusion history; "
+                "set tissue_volume when creating the bed."
+            )
+        return np.array([sample.regional_perfusion for sample in samples], dtype=float)
 
     def save_probes(self, path: str | Path) -> None:
         """Save probe time histories to CSV."""
@@ -94,6 +148,34 @@ class Results:
                 result=self.raw,
                 vessel_id=vessel_id,
                 probe_names=probe_names,
+                close=not show,
+            )
+
+        if show:
+            import matplotlib.pyplot as plt
+
+            plt.show()
+
+    def plot_capillary_beds(
+        self,
+        output_dir: str | Path | None = None,
+        *,
+        show: bool = True,
+    ) -> None:
+        """Plot all recorded lumped capillary-bed histories."""
+
+        bed_ids = self.capillary_bed_ids()
+        if not bed_ids:
+            return
+
+        from hemo1d.plotting import plot_capillary_bed_history
+
+        path = None if output_dir is None else Path(output_dir)
+        for bed_id in bed_ids:
+            plot_capillary_bed_history(
+                output_dir=path,
+                samples=self.capillary_bed_history(bed_id),
+                bed_id=bed_id,
                 close=not show,
             )
 

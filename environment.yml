@@ -3,6 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.12
+  - pip
   - fenics-dolfinx=0.10.*
   - mpich
   - pyvista
@@ -13,4 +14,8 @@ dependencies:
   - ruff
   - mypy
   - ipython
+  - ipykernel
+  - jupyter
+  - notebook
   - tqdm
+  - pandas

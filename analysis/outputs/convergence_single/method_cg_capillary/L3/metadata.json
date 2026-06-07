@@ -1,0 +1,20 @@
+{
+  "num_steps": 1000,
+  "solver": {
+    "cfl": 0.5773502691896257,
+    "dg_flux": "lxf",
+    "dg_time_scheme": "rk2",
+    "dt": 5e-07,
+    "h": 0.015625,
+    "max_steps": 1000000,
+    "method": "cg",
+    "num_cells": null,
+    "poly_order": 1,
+    "record_every": 5
+  },
+  "source_path": "analysis/configs/single_vessel.json",
+  "time": 0.0005,
+  "vessels": [
+    "vessel"
+  ]
+}

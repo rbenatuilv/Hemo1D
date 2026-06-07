@@ -45,5 +45,37 @@ def validate_network_config(config: NetworkConfig) -> None:
                 raise ValueError(f"Endpoint {endpoint.label()} appears in more than one junction.")
             seen.add(endpoint)
 
+    seen_beds: set[str] = set()
+    for bed in config.capillary_beds:
+        if not bed.bed_id.strip():
+            raise ValueError("Capillary bed id must be non-empty.")
+        if bed.bed_id in seen_beds:
+            raise ValueError(f"Duplicate capillary bed id {bed.bed_id!r}.")
+        seen_beds.add(bed.bed_id)
+
+        if not bed.outlets:
+            raise ValueError(f"Capillary bed {bed.bed_id!r} outlets must be non-empty.")
+        if bed.compliance <= 0.0:
+            raise ValueError(f"Capillary bed {bed.bed_id!r} compliance must be positive.")
+        if bed.venous_resistance <= 0.0:
+            raise ValueError(
+                f"Capillary bed {bed.bed_id!r} venous resistance must be positive."
+            )
+        if bed.tissue_volume is not None and bed.tissue_volume <= 0.0:
+            raise ValueError(
+                f"Capillary bed {bed.bed_id!r} tissue volume must be positive."
+            )
+
+        for outlet in bed.outlets:
+            if outlet.vessel_id not in config.vessels:
+                raise ValueError(
+                    f"Capillary bed {bed.bed_id!r} references unknown "
+                    f"vessel {outlet.vessel_id!r}."
+                )
+            if outlet.resistance <= 0.0:
+                raise ValueError(
+                    f"Capillary bed {bed.bed_id!r} outlet resistance must be positive."
+                )
+
 
 __all__ = ["validate_network_config"]

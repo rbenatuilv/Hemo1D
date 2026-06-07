@@ -21,6 +21,13 @@ results.save("examples/outputs/single_vessel_dg")
 results.plot_probes("examples/outputs/single_vessel_dg/plots")
 ```
 
+DG defaults to local Lax-Friedrichs/Rusanov interface flux (`dg_flux="lxf"`).
+Select HLL with:
+
+```python
+model.set_solver(method="DG", h=0.125, dt=1.0e-5, poly_order=1, dg_flux="hll")
+```
+
 ## Config Files
 
 Network JSON files contain vessels plus optional junctions:

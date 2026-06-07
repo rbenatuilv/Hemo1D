@@ -260,6 +260,23 @@ def test_create_dg_vessel_returns_generic_vessel(
     assert sampled.flow_rate == pytest.approx(0.0)
 
 
+def test_create_dg_vessel_passes_flux_scheme_to_stepper(
+    physics: Hemo1DPhysics,
+) -> None:
+    discretization = DGFEMDiscretization(
+        DGMeshConfig(length=1.0, num_cells=4, degree=1)
+    )
+
+    vessel = create_dg_vessel(
+        vessel_id="v0",
+        physics=physics,
+        discretization=discretization,
+        flux_scheme="HLL",
+    )
+
+    assert vessel.stepper.flux_scheme == "hll"
+
+
 def test_vessel_state_arrays_use_dg_extractor(
     physics: Hemo1DPhysics,
 ) -> None:

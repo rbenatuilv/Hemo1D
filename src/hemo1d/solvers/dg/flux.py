@@ -1,11 +1,44 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 
 from hemo1d.core.physics import Hemo1DPhysics
 from hemo1d.core.state import BoundaryState, StateAtPoint
+
+
+DGFluxScheme = Literal["lxf", "hll"]
+
+_DG_FLUX_SCHEME_ALIASES: dict[str, DGFluxScheme] = {
+    "lxf": "lxf",
+    "lax_friedrichs": "lxf",
+    "lax-friedrichs": "lxf",
+    "rusanov": "lxf",
+    "hll": "hll",
+}
+
+
+def canonicalize_dg_flux_scheme(value: str) -> DGFluxScheme:
+    """
+    Convert a user-facing DG flux name to its canonical solver value.
+    """
+    if not isinstance(value, str):
+        raise ValueError(
+            "DG flux scheme must be a string: accepted values are "
+            "'lxf' and 'hll'."
+        )
+
+    key = value.strip().lower()
+    try:
+        return _DG_FLUX_SCHEME_ALIASES[key]
+    except KeyError as exc:
+        raise ValueError(
+            "Invalid DG flux scheme "
+            f"{value!r}; expected 'lxf' or 'hll' "
+            "(aliases: 'lax_friedrichs', 'lax-friedrichs', 'rusanov')."
+        ) from exc
 
 
 @dataclass(frozen=True)
@@ -160,6 +193,66 @@ def lax_friedrichs_flux(
     )
 
     return 0.5 * (F_left + F_right) - 0.5 * s_max * (U_right - U_left)
+
+
+def hll_flux(
+    physics: Hemo1DPhysics,
+    left: ConservativeState,
+    right: ConservativeState,
+) -> np.ndarray:
+    """
+    Harten-Lax-van Leer numerical flux.
+
+    This returns the oriented flux through an interface whose normal points in
+    the positive z direction, matching ``lax_friedrichs_flux``.
+
+    If the HLL denominator is degenerate or the resulting flux is non-finite,
+    the local Lax-Friedrichs/Rusanov flux is used as a robust fallback.
+    """
+    _validate_state(left)
+    _validate_state(right)
+
+    F_left = physical_flux(physics, left)
+    F_right = physical_flux(physics, right)
+
+    lambda_plus_left, lambda_minus_left = physics.eigenvalues(
+        left.area,
+        left.flow_rate,
+    )
+    lambda_plus_right, lambda_minus_right = physics.eigenvalues(
+        right.area,
+        right.flow_rate,
+    )
+
+    s_L = min(float(lambda_minus_left), float(lambda_minus_right))
+    s_R = max(float(lambda_plus_left), float(lambda_plus_right))
+
+    if not (np.isfinite(s_L) and np.isfinite(s_R)):
+        return lax_friedrichs_flux(physics, left, right)
+
+    if 0.0 <= s_L:
+        return F_left
+    if s_R <= 0.0:
+        return F_right
+
+    denom = s_R - s_L
+    scale = max(1.0, abs(s_L), abs(s_R))
+    if not np.isfinite(denom) or abs(denom) <= np.finfo(np.float64).eps * scale:
+        return lax_friedrichs_flux(physics, left, right)
+
+    U_left = left.as_array()
+    U_right = right.as_array()
+
+    flux = (
+        s_R * F_left
+        - s_L * F_right
+        + s_L * s_R * (U_right - U_left)
+    ) / denom
+
+    if not np.all(np.isfinite(flux)):
+        return lax_friedrichs_flux(physics, left, right)
+
+    return flux
 
 
 def _validate_state(state: ConservativeState) -> None:

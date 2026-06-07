@@ -23,9 +23,12 @@ from hemo1d.boundary import (
     create_pulsatile_inflow,
     create_sinusoidal_inflow,
     create_periodic_positive_sine_inflow,
+    create_arterial_pressure_inflow,
 )
 from hemo1d.config import (
     BloodConfig,
+    CapillaryBedConfig,
+    CapillaryBedOutletConfig,
     JunctionConfig,
     NetworkConfig,
     VesselConfig,
@@ -53,6 +56,8 @@ __version__ = "0.1.0"
 __all__ = [
     "BloodConfig",
     "BloodParameters",
+    "CapillaryBedConfig",
+    "CapillaryBedOutletConfig",
     "CSVScalarFunction",
     "EndpointSide",
     "HemodynamicModel",
@@ -74,6 +79,7 @@ __all__ = [
     "create_pulsatile_inflow",
     "create_sinusoidal_inflow",
     "create_periodic_positive_sine_inflow",
+    "create_arterial_pressure_inflow",
     "load_from_config",
     "load_json",
     "load_network_config",

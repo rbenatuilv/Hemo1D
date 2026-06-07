@@ -9,6 +9,7 @@ from hemo1d.config import NetworkConfig, VesselConfig
 from hemo1d.core.backend import NP_BACKEND
 from hemo1d.core.parameters import BloodParameters, ModelParameters, VesselParameters
 from hemo1d.core.physics import Hemo1DPhysics
+from hemo1d.lumped import LumpedCapillaryBed
 from hemo1d.topology.graph import Junction, VascularNetwork
 from hemo1d.topology.endpoint import NetworkEndpoint
 from hemo1d.boundary.base import BoundaryCondition
@@ -28,6 +29,7 @@ class SolverSettings:
     num_cells: int | dict[str, int] | None = None
     cfl: float = float(np.sqrt(3.0) / 3.0)
     dg_time_scheme: Literal["euler", "rk2"] = "rk2"
+    dg_flux: str = "lxf"
     record_every: int = 1
     max_steps: int = 1_000_000
 
@@ -50,12 +52,21 @@ class SolverSettings:
         if self.max_steps <= 0:
             raise ValueError("max_steps must be positive.")
 
+        from hemo1d.solvers.dg.flux import canonicalize_dg_flux_scheme
+
+        object.__setattr__(
+            self,
+            "dg_flux",
+            canonicalize_dg_flux_scheme(self.dg_flux),
+        )
+
 
 def build_vascular_network(
     *,
     config: NetworkConfig,
     solver: SolverSettings,
     external_boundaries: dict[NetworkEndpoint, BoundaryCondition],
+    lumped_beds: list[LumpedCapillaryBed] | None = None,
 ) -> VascularNetwork:
     """Build a mutable solver network from declarative model state."""
 
@@ -80,6 +91,7 @@ def build_vascular_network(
         vessels=vessels,
         external_boundaries=external_boundaries,
         junctions=junctions,
+        lumped_beds=list(lumped_beds or []),
     )
 
 
@@ -138,6 +150,7 @@ def _create_solver_vessel(*, vessel: VesselConfig, solver: SolverSettings, num_c
             physics=physics,
             discretization=discretization,
             time_scheme=solver.dg_time_scheme,
+            flux_scheme=solver.dg_flux,
         )
     else:
         raise RuntimeError(f"Unexpected solver method: {solver.method}")

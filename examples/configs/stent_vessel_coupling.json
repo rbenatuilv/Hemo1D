@@ -1,7 +1,7 @@
 {
   "defaults": {
     "blood": {
-      "rho": 1.06,
+      "rho": 1.055,
       "mu": 0.035
     },
     "gamma_profile": 2.0,
@@ -21,7 +21,7 @@
       "length": 10.0,
       "area0": 0.7854,
       "beta": 35449077.0,
-      "left_bound": "inflow",
+      "left_bound": "coupling",
       "right_bound": "coupling"
     },
     "downstream": {

@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from hemo1d.config.models import BloodConfig, JunctionConfig, VesselConfig
+from hemo1d.config.models import (
+    BloodConfig,
+    CapillaryBedConfig,
+    CapillaryBedOutletConfig,
+    JunctionConfig,
+    VesselConfig,
+)
 from hemo1d.config.sides import parse_endpoint_side
 from hemo1d.topology.endpoint import NetworkEndpoint
 
@@ -113,6 +119,75 @@ def parse_junctions(data: Any) -> list[JunctionConfig]:
     return junctions
 
 
+def parse_capillary_beds(data: Any) -> list[CapillaryBedConfig]:
+    if data in ({}, [], None):
+        return []
+
+    if isinstance(data, dict):
+        items = data.items()
+    elif isinstance(data, list):
+        items = ((required_any_string(item, "id", "bed_id"), item) for item in data)
+    else:
+        raise ValueError("'capillary_beds' must be a JSON object or list.")
+
+    beds: list[CapillaryBedConfig] = []
+    for bed_id, raw in items:
+        if not isinstance(raw, dict):
+            raise ValueError(f"Capillary bed {bed_id!r} must be a JSON object.")
+
+        beds.append(
+            CapillaryBedConfig(
+                bed_id=str(bed_id),
+                outlets=parse_capillary_bed_outlets(
+                    pick(raw, "outlets"),
+                    bed_id=str(bed_id),
+                ),
+                compliance=float(pick(raw, "C")),
+                venous_resistance=float(pick(raw, "R_ven")),
+                venous_pressure=float(pick(raw, "P_ven")),
+                initial_pressure=(
+                    float(raw["P0"]) if raw.get("P0") is not None else None
+                ),
+                tissue_volume=(
+                    float(raw["tissue_volume"])
+                    if raw.get("tissue_volume") is not None
+                    else None
+                ),
+            )
+        )
+
+    return beds
+
+
+def parse_capillary_bed_outlets(
+    data: Any,
+    *,
+    bed_id: str,
+) -> tuple[CapillaryBedOutletConfig, ...]:
+    if not isinstance(data, (list, tuple)):
+        raise ValueError(f"Capillary bed {bed_id!r} outlets must be a list.")
+
+    outlets: list[CapillaryBedOutletConfig] = []
+    for raw in data:
+        if not isinstance(raw, dict):
+            raise ValueError(f"Capillary bed {bed_id!r} outlets must be JSON objects.")
+
+        vessel_id = raw.get("vessel_id", raw.get("vessel", raw.get("id")))
+        if vessel_id is None:
+            raise ValueError(f"Capillary bed {bed_id!r} outlet is missing vessel_id.")
+
+        side = raw.get("side")
+        outlets.append(
+            CapillaryBedOutletConfig(
+                vessel_id=str(vessel_id),
+                resistance=float(pick(raw, "R_art")),
+                side=parse_endpoint_side(side) if side is not None else None,
+            )
+        )
+
+    return tuple(outlets)
+
+
 def parse_endpoint_ref(data: Any) -> NetworkEndpoint:
     if not isinstance(data, dict):
         raise ValueError("Endpoint reference must be an object with vessel_id and side.")
@@ -135,6 +210,14 @@ def required_string(data: dict[str, Any], key: str) -> str:
     if not isinstance(data, dict) or key not in data:
         raise ValueError(f"List entries must contain {key!r}.")
     return str(data[key])
+
+
+def required_any_string(data: dict[str, Any], *keys: str) -> str:
+    if isinstance(data, dict):
+        for key in keys:
+            if key in data and data[key] is not None:
+                return str(data[key])
+    raise ValueError(f"List entries must contain one of {keys}.")
 
 
 def optional_label(value: Any) -> str | None:
@@ -175,9 +258,12 @@ def parse_angles(
 __all__ = [
     "optional_label",
     "parse_angles",
+    "parse_capillary_bed_outlets",
+    "parse_capillary_beds",
     "parse_endpoint_ref",
     "parse_junctions",
     "parse_vessels",
     "pick",
+    "required_any_string",
     "required_string",
 ]

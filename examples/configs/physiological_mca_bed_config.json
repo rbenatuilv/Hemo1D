@@ -1,0 +1,35 @@
+{
+  "defaults": {
+    "blood": {
+      "rho": 1.055,
+      "mu": 0.035
+    },
+    "gamma_profile": 2.0,
+    "p0": 106657.6,
+    "p_ext": 0.0
+  },
+  "vessels": {
+    "left_mca": {
+      "length": 8.0,
+      "area0": 0.0491,
+      "beta": 606060.0,
+      "left_bound": "inflow",
+      "right_bound": "outflow"
+    }
+  },
+  "capillary_beds": {
+    "L_MCA_region": {
+      "outlets": [
+        {
+          "vessel_id": "left_mca",
+          "R_art": 23997.96
+        }
+      ],
+      "C": 6.945034772400098e-6,
+      "R_ven": 14398.776000000002,
+      "P_ven": 10665.76,
+      "P0": 46662.700000000004,
+      "tissue_volume": 300.0
+    }
+  }
+}

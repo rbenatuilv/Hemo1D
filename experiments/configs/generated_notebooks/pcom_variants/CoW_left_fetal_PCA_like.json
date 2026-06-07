@@ -1,0 +1,410 @@
+{
+  "defaults": {
+    "blood": {
+      "rho": 1.06,
+      "mu": 0.035
+    },
+    "gamma_profile": 2.0,
+    "p0": 106657.6,
+    "p_ext": 0.0
+  },
+  "vessels": {
+    "BAS": {
+      "length": 1.28,
+      "initial_area": 0.074,
+      "beta_coeff": 1451000.0,
+      "left_bound": "inflow",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "L-PCA_I": {
+      "length": 1.3212,
+      "initial_area": 0.012145,
+      "beta_coeff": 497000.0,
+      "left_bound": "branch",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "L-PCA_II": {
+      "length": 3.0909,
+      "initial_area": 0.0338,
+      "beta_coeff": 497000.0,
+      "left_bound": "branch",
+      "right_bound": "outflow",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "L-PCommA": {
+      "length": 1.1713,
+      "initial_area": 0.064,
+      "beta_coeff": 426000.0,
+      "left_bound": "branch",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "L-ICA_I": {
+      "length": 4.2887,
+      "initial_area": 0.1252,
+      "beta_coeff": 1887000.0,
+      "left_bound": "branch",
+      "right_bound": "inflow",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "L-ICA_II": {
+      "length": 0.4203,
+      "initial_area": 0.0756,
+      "beta_coeff": 733000.0,
+      "left_bound": "branch",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "L-ACA_I": {
+      "length": 3.0665,
+      "initial_area": 0.0288,
+      "beta_coeff": 452000.0,
+      "left_bound": "branch",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "L-MCA": {
+      "length": 4.4854,
+      "initial_area": 0.058,
+      "beta_coeff": 642000.0,
+      "left_bound": "branch",
+      "right_bound": "outflow",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "R-PCA_I": {
+      "length": 1.0012,
+      "initial_area": 0.0295,
+      "beta_coeff": 458000.0,
+      "left_bound": "branch",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "R-PCA_II": {
+      "length": 2.5496,
+      "initial_area": 0.0331,
+      "beta_coeff": 485000.0,
+      "left_bound": "branch",
+      "right_bound": "outflow",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "R-PCommA": {
+      "length": 1.8936,
+      "initial_area": 0.0301,
+      "beta_coeff": 463000.0,
+      "left_bound": "branch",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "R-ICA_I": {
+      "length": 4.865,
+      "initial_area": 0.126,
+      "beta_coeff": 1893000.0,
+      "left_bound": "branch",
+      "right_bound": "inflow",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "R-ICA_II": {
+      "length": 0.6961,
+      "initial_area": 0.08,
+      "beta_coeff": 754000.0,
+      "left_bound": "branch",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "R-ACA_I": {
+      "length": 2.1127,
+      "initial_area": 0.0435,
+      "beta_coeff": 556000.0,
+      "left_bound": "branch",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "R-MCA": {
+      "length": 3.3325,
+      "initial_area": 0.0623,
+      "beta_coeff": 666000.0,
+      "left_bound": "branch",
+      "right_bound": "outflow",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "ACA": {
+      "length": 0.4632,
+      "initial_area": 0.0214,
+      "beta_coeff": 390000.0,
+      "left_bound": "branch",
+      "right_bound": "branch",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "L-ACA_II": {
+      "length": 4.4019,
+      "initial_area": 0.0281,
+      "beta_coeff": 447000.0,
+      "left_bound": "branch",
+      "right_bound": "outflow",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    },
+    "R-ACA_II": {
+      "length": 3.9169,
+      "initial_area": 0.0323,
+      "beta_coeff": 479000.0,
+      "left_bound": "branch",
+      "right_bound": "outflow",
+      "p0": 106657.6,
+      "p_ext": 0.0
+    }
+  },
+  "junctions": {
+    "junction_1": {
+      "branches": [
+        "BAS",
+        "L-PCA_I",
+        "R-PCA_I"
+      ],
+      "positions": [
+        "right",
+        "left",
+        "left"
+      ],
+      "angles": [
+        "None",
+        0.7748,
+        0.7771
+      ]
+    },
+    "junction_2": {
+      "branches": [
+        "L-PCA_I",
+        "L-PCA_II",
+        "L-PCommA"
+      ],
+      "positions": [
+        "right",
+        "left",
+        "left"
+      ],
+      "angles": [
+        "None",
+        0.7054,
+        0.9872
+      ]
+    },
+    "junction_3": {
+      "branches": [
+        "L-ICA_I",
+        "L-PCommA",
+        "L-ICA_II"
+      ],
+      "positions": [
+        "left",
+        "right",
+        "left"
+      ],
+      "angles": [
+        "None",
+        1.2182,
+        0.5778
+      ]
+    },
+    "junction_4": {
+      "branches": [
+        "L-ICA_II",
+        "L-ACA_I",
+        "L-MCA"
+      ],
+      "positions": [
+        "right",
+        "left",
+        "left"
+      ],
+      "angles": [
+        "None",
+        1.9317,
+        0.1917
+      ]
+    },
+    "junction_5": {
+      "branches": [
+        "L-ACA_I",
+        "ACA",
+        "L-ACA_II"
+      ],
+      "positions": [
+        "right",
+        "left",
+        "left"
+      ],
+      "angles": [
+        "None",
+        2.4837,
+        0.2554
+      ]
+    },
+    "junction_6": {
+      "branches": [
+        "R-PCA_I",
+        "R-PCA_II",
+        "R-PCommA"
+      ],
+      "positions": [
+        "right",
+        "left",
+        "left"
+      ],
+      "angles": [
+        "None",
+        0.8728,
+        1.1379
+      ]
+    },
+    "junction_7": {
+      "branches": [
+        "R-ICA_I",
+        "R-ICA_II",
+        "R-PCommA"
+      ],
+      "positions": [
+        "left",
+        "left",
+        "right"
+      ],
+      "angles": [
+        "None",
+        0.6948,
+        1.3204
+      ]
+    },
+    "junction_8": {
+      "branches": [
+        "R-ICA_II",
+        "R-ACA_I",
+        "R-MCA"
+      ],
+      "positions": [
+        "right",
+        "left",
+        "left"
+      ],
+      "angles": [
+        "None",
+        1.0024,
+        0.982
+      ]
+    },
+    "junction_9": {
+      "branches": [
+        "R-ACA_I",
+        "ACA",
+        "R-ACA_II"
+      ],
+      "positions": [
+        "right",
+        "right",
+        "left"
+      ],
+      "angles": [
+        "None",
+        0.891,
+        0.9184
+      ]
+    }
+  },
+  "capillary_beds": {
+    "L-ACA_bed": {
+      "outlets": [
+        {
+          "vessel_id": "L-ACA_II",
+          "R_art": 36000.0
+        }
+      ],
+      "C": 6.95e-06,
+      "R_ven": 21600.0,
+      "P_ven": 10665.76,
+      "P0": 46662.700000000004,
+      "tissue_volume": 200.0
+    },
+    "R-ACA_bed": {
+      "outlets": [
+        {
+          "vessel_id": "R-ACA_II",
+          "R_art": 36000.0
+        }
+      ],
+      "C": 6.95e-06,
+      "R_ven": 21600.0,
+      "P_ven": 10665.76,
+      "P0": 46662.700000000004,
+      "tissue_volume": 200.0
+    },
+    "L-MCA_bed": {
+      "outlets": [
+        {
+          "vessel_id": "L-MCA",
+          "R_art": 18950.0
+        }
+      ],
+      "C": 1.32e-05,
+      "R_ven": 11370.0,
+      "P_ven": 10665.76,
+      "P0": 46662.700000000004,
+      "tissue_volume": 380.0
+    },
+    "R-MCA_bed": {
+      "outlets": [
+        {
+          "vessel_id": "R-MCA",
+          "R_art": 18950.0
+        }
+      ],
+      "C": 1.32e-05,
+      "R_ven": 11370.0,
+      "P_ven": 10665.76,
+      "P0": 46662.700000000004,
+      "tissue_volume": 380.0
+    },
+    "L-PCA_bed": {
+      "outlets": [
+        {
+          "vessel_id": "L-PCA_II",
+          "R_art": 42350.0
+        }
+      ],
+      "C": 5.9e-06,
+      "R_ven": 25410.0,
+      "P_ven": 10665.76,
+      "P0": 46662.700000000004,
+      "tissue_volume": 170.0
+    },
+    "R-PCA_bed": {
+      "outlets": [
+        {
+          "vessel_id": "R-PCA_II",
+          "R_art": 42350.0
+        }
+      ],
+      "C": 5.9e-06,
+      "R_ven": 25410.0,
+      "P_ven": 10665.76,
+      "P0": 46662.700000000004,
+      "tissue_volume": 170.0
+    }
+  }
+}
