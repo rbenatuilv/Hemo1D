@@ -129,6 +129,22 @@ def test_convergence_uses_full_solution_without_probes(tmp_path):
     output_dir = tmp_path / "convergence"
     study.save(output_dir)
 
+    metadata = json.loads((output_dir / "metadata.json").read_text())
+    assert metadata["expected_order"] == pytest.approx(2.0)
+    assert metadata["refinement_ratio"] == pytest.approx(2.0)
+    assert metadata["h_levels"] == pytest.approx([0.5, 0.25, 0.125])
+    assert metadata["dt_levels"] == pytest.approx([1.0e-5, 5.0e-6, 2.5e-6])
+    assert set(metadata["observed_orders"]) == set(study.observed_orders)
+    for quantity, orders in study.observed_orders.items():
+        assert metadata["observed_orders"][quantity] == pytest.approx(
+            orders,
+            nan_ok=True,
+        )
+    assert [
+        (level["name"], level["num_cells"])
+        for level in metadata["levels"]
+    ] == [("L0", 2), ("L1", 4), ("L2", 8)]
+
     with (output_dir / "convergence.csv").open() as file:
         reader = csv.DictReader(file)
         assert reader.fieldnames == [

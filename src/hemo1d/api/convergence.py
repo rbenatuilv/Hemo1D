@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -8,7 +9,7 @@ import numpy as np
 
 from hemo1d.builder import SolverSettings
 from hemo1d.config import NetworkConfig
-from hemo1d.results import Results
+from hemo1d.results import Results, _jsonable
 
 if TYPE_CHECKING:
     from hemo1d.convergence.reports import ConvergenceErrorRow
@@ -104,9 +105,34 @@ class ConvergenceStudy:
             self.error_rows,
             output_dir / "convergence.csv",
         )
+        self._save_metadata(output_dir / "metadata.json")
 
         for level in self.levels:
             level.result.save(output_dir / level.name)
+
+    def _save_metadata(self, path: Path) -> None:
+        metadata = {
+            "expected_order": self.expected_order,
+            "refinement_ratio": self.refinement_ratio,
+            "h_levels": [level.h for level in self.levels],
+            "dt_levels": [level.dt for level in self.levels],
+            "observed_orders": self.observed_orders,
+            "levels": [
+                {
+                    "name": level.name,
+                    "h": level.h,
+                    "dt": level.dt,
+                    "num_cells": level.num_cells,
+                    "time": level.result.time,
+                    "num_steps": level.result.num_steps,
+                    "solver": level.result.solver_settings,
+                    "metadata": level.result.metadata,
+                }
+                for level in self.levels
+            ],
+        }
+        with path.open("w") as file:
+            json.dump(_jsonable(metadata), file, indent=2, sort_keys=True)
 
     def plot(self, output_dir: str | Path | None = None, *, show: bool = True) -> None:
         """Plot full-solution area and flow-rate convergence errors."""

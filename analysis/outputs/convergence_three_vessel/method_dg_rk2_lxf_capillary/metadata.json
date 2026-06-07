@@ -1,0 +1,147 @@
+{
+  "dt_levels": [
+    4e-06,
+    2e-06,
+    1e-06,
+    5e-07,
+    2.5e-07
+  ],
+  "expected_order": 2.0,
+  "h_levels": [
+    0.125,
+    0.0625,
+    0.03125,
+    0.015625,
+    0.0078125
+  ],
+  "levels": [
+    {
+      "dt": 4e-06,
+      "h": 0.125,
+      "metadata": {
+        "source_path": "analysis/configs/three_vessel.json"
+      },
+      "name": "L0",
+      "num_cells": 48,
+      "num_steps": 125,
+      "solver": {
+        "cfl": 0.5773502691896257,
+        "dg_flux": "lxf",
+        "dg_time_scheme": "rk2",
+        "dt": 4e-06,
+        "h": 0.125,
+        "max_steps": 1000000,
+        "method": "dg",
+        "num_cells": null,
+        "poly_order": 1,
+        "record_every": 5
+      },
+      "time": 0.0005
+    },
+    {
+      "dt": 2e-06,
+      "h": 0.0625,
+      "metadata": {
+        "source_path": "analysis/configs/three_vessel.json"
+      },
+      "name": "L1",
+      "num_cells": 96,
+      "num_steps": 250,
+      "solver": {
+        "cfl": 0.5773502691896257,
+        "dg_flux": "lxf",
+        "dg_time_scheme": "rk2",
+        "dt": 2e-06,
+        "h": 0.0625,
+        "max_steps": 1000000,
+        "method": "dg",
+        "num_cells": null,
+        "poly_order": 1,
+        "record_every": 5
+      },
+      "time": 0.0005
+    },
+    {
+      "dt": 1e-06,
+      "h": 0.03125,
+      "metadata": {
+        "source_path": "analysis/configs/three_vessel.json"
+      },
+      "name": "L2",
+      "num_cells": 192,
+      "num_steps": 500,
+      "solver": {
+        "cfl": 0.5773502691896257,
+        "dg_flux": "lxf",
+        "dg_time_scheme": "rk2",
+        "dt": 1e-06,
+        "h": 0.03125,
+        "max_steps": 1000000,
+        "method": "dg",
+        "num_cells": null,
+        "poly_order": 1,
+        "record_every": 5
+      },
+      "time": 0.0005
+    },
+    {
+      "dt": 5e-07,
+      "h": 0.015625,
+      "metadata": {
+        "source_path": "analysis/configs/three_vessel.json"
+      },
+      "name": "L3",
+      "num_cells": 384,
+      "num_steps": 1000,
+      "solver": {
+        "cfl": 0.5773502691896257,
+        "dg_flux": "lxf",
+        "dg_time_scheme": "rk2",
+        "dt": 5e-07,
+        "h": 0.015625,
+        "max_steps": 1000000,
+        "method": "dg",
+        "num_cells": null,
+        "poly_order": 1,
+        "record_every": 5
+      },
+      "time": 0.0005
+    },
+    {
+      "dt": 2.5e-07,
+      "h": 0.0078125,
+      "metadata": {
+        "source_path": "analysis/configs/three_vessel.json"
+      },
+      "name": "L4",
+      "num_cells": 768,
+      "num_steps": 2000,
+      "solver": {
+        "cfl": 0.5773502691896257,
+        "dg_flux": "lxf",
+        "dg_time_scheme": "rk2",
+        "dt": 2.5e-07,
+        "h": 0.0078125,
+        "max_steps": 1000000,
+        "method": "dg",
+        "num_cells": null,
+        "poly_order": 1,
+        "record_every": 5
+      },
+      "time": 0.0005
+    }
+  ],
+  "observed_orders": {
+    "area": [
+      1.5829439524777813,
+      1.572081464256665,
+      1.4450056645355305
+    ],
+    "flow_rate": [
+      1.5968752411689615,
+      1.63608864315487,
+      1.3150237740731394
+    ]
+  },
+  "refinement_ratio": 2.0
+}

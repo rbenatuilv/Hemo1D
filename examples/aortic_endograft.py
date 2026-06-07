@@ -14,7 +14,6 @@ DT = 1.0e-5
 T_END = 0.3
 POLY_ORDER = 1
 
-OUTLET_MODEL = "nonreflecting"
 RECORD_EVERY = 1
 OUTPUT_DIR = None
 SHOW_PLOTS = False
@@ -31,33 +30,8 @@ def main() -> None:
 
     model.set_inlet(vessel_id="upstream", kind="flowrate", function=q_in)
 
-    AREA_1 = model.config.vessel("branch_1").area0
-    AREA_2 = model.config.vessel("branch_2").area0
-
-    if OUTLET_MODEL == "nonreflecting":
-        model.set_outlet(vessel_id="branch_1", kind="nonreflecting")
-        model.set_outlet(vessel_id="branch_2", kind="nonreflecting")
-    else:
-        model.set_windkessel_outlet(
-            vessel_id="branch_1",
-            R_art=1.0e3,
-            C=1.0e-3,
-            R_ven=1.0e3,
-            P_ven=0.0,
-            P0=0.0,
-            tissue_volume=100.0 * AREA_1,
-            bed_id="branch_1_bed",
-        )
-        model.set_windkessel_outlet(
-            vessel_id="branch_2",
-            R_art=1.0e3,
-            C=1.0e-3,
-            R_ven=1.0e3,
-            P_ven=0.0,
-            P0=0.0,
-            tissue_volume=100.0 * AREA_2,
-            bed_id="branch_2_bed",
-        )
+    model.set_outlet(vessel_id="branch_1", kind="nonreflecting")
+    model.set_outlet(vessel_id="branch_2", kind="nonreflecting")
 
     model.set_solver(
         method=METHOD,
@@ -77,11 +51,10 @@ def main() -> None:
 
     results = model.solve(t_end=T_END, show_progress=True)
 
-    outlet_name = OUTLET_MODEL.replace("-", "_")
     if METHOD == "dg":
-        name = f"method_{METHOD}_{DG_FLUX}_{outlet_name}"
+        name = f"method_{METHOD}_{DG_FLUX}"
     else:
-        name = f"method_{METHOD}_{outlet_name}"
+        name = f"method_{METHOD}"
 
     output_dir = OUTPUT_DIR or Path(f"examples/outputs/aortic_endograft/{name}")
 

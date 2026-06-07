@@ -10,7 +10,7 @@
     "method": "cg",
     "num_cells": null,
     "poly_order": 1,
-    "record_every": 1
+    "record_every": 5
   },
   "source_path": "analysis/configs/single_vessel.json",
   "time": 0.0005,
