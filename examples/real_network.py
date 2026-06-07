@@ -9,12 +9,12 @@ METHOD = "cg"
 DG_FLUX = "lxf"
 DG_TIME_SCHEME = "rk2"
 
-H = 0.125
+H = 0.02625
 DT = 1.0e-5
-T_END = 1.0
+T_END = 3.0
 POLY_ORDER = 1
 
-OUTLET_MODEL = "nonreflecting"
+OUTLET_MODEL = "capillary-bed"
 RECORD_EVERY = 10
 OUTPUT_DIR = None
 SHOW_PLOTS = False

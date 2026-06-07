@@ -1,7 +1,7 @@
 {
   "defaults": {
     "blood": {
-      "rho": 1.06,
+      "rho": 1.055,
       "mu": 0.035
     },
     "gamma_profile": 2.0,
