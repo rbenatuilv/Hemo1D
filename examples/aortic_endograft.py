@@ -9,7 +9,7 @@ METHOD = "dg"
 DG_FLUX = "lxf"
 DG_TIME_SCHEME = "rk2"
 
-H = 0.0275
+H = 0.05
 DT = 1.0e-5
 T_END = 0.3
 POLY_ORDER = 1
