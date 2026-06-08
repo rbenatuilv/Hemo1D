@@ -30,17 +30,6 @@ def main() -> None:
 
     model.set_inlet(vessel_id="upstream", kind="flowrate", function=q_in)
 
-    model.set_windkessel_outlet(
-        vessel_id="downstream",
-        R_art=1.0e4,
-        C=1.0e-4,
-        R_ven=1.0e4,
-        P_ven=0.0,
-        P0=0.0,
-        tissue_volume=100.0,
-        bed_id="downstream_bed",
-    )
-
     model.set_solver(
         method=METHOD,
         h=H,

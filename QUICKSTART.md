@@ -86,12 +86,24 @@ print(study.observed_orders)
 
 ```bash
 python examples/main_example.py
-python examples/single_vessel.py --method dg
-python examples/stent_vessel_coupling.py --method dg
-python examples/three_vessel.py --method dg
-python examples/real_network.py --method cg
-python examples/convergence_single.py --method dg
-python examples/convergence_three_vessel.py --method dg
+python examples/high_level_api.py
+python examples/two_vessel_coupling.py
+python examples/stent_vessel_coupling.py
+python examples/aortic_endograft.py
+python examples/capillary_bed_outlet.py
+python examples/physiological_mca_bed_example.py
+python examples/real_network.py
+```
+
+The example scripts are configured by editing their module-level constants
+(`METHOD`, `DG_FLUX`, `H`, `DT`, `T_END`, and related output settings).
+Convergence scripts live under `analysis/`:
+
+```bash
+python analysis/single_vessel.py
+python analysis/three_vessel.py
+python analysis/convergence_single.py
+python analysis/convergence_three_vessel.py
 ```
 
 CG runs require the FEniCSx environment from `environment.yml`:
@@ -104,4 +116,4 @@ The public `hemo1d` namespace intentionally exposes the facade and common
 configuration, boundary, I/O, result, convergence, and core physics types.
 Low-level solver work should import from canonical subpackages such as
 `hemo1d.solvers.cg`, `hemo1d.solvers.dg`, `hemo1d.topology`,
-`hemo1d.boundary`, and `hemo1d.observe`.
+`hemo1d.boundary`, `hemo1d.lumped`, and `hemo1d.observe`.

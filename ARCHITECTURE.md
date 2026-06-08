@@ -28,6 +28,8 @@ as `NetworkSolver`, CG/DG discretizations, or vessel factories.
 - `hemo1d.topology`: endpoint and network graph structures.
 - `hemo1d.boundary`: characteristic external boundary conditions, waveform
   helpers, and bifurcation/junction equations.
+- `hemo1d.lumped`: lumped capillary-bed outlet data, equations, Newton solve,
+  and coupling state.
 - `hemo1d.solvers`: generic solver protocols, time configuration, generic
   vessel wrapper, network/model solver, and solver implementations.
 - `hemo1d.solvers.cg`: Continuous Galerkin discretization, forms, mass solver,
@@ -43,15 +45,19 @@ as `NetworkSolver`, CG/DG discretizations, or vessel factories.
 ## Solver Flow
 
 1. `HemodynamicModel` loads and stores declarative network config.
-2. Boundary assignments, solver settings, and probes are attached to the model.
-3. `build_vascular_network(...)` creates fresh mutable solver vessels for a run.
-4. `NetworkSolver` advances vessels and junction states without changing the
-   mathematical kernels.
-5. `Results` wraps the raw solver result for saving, plotting, and metadata.
+2. Boundary assignments, optional lumped beds, solver settings, and probes are
+   attached to the model.
+3. `build_vascular_network(...)` creates fresh mutable solver vessels and
+   coupled outlet state for a run.
+4. `NetworkSolver` advances vessels, junctions, external boundaries, and lumped
+   beds without changing the mathematical kernels.
+5. `Results` wraps the raw solver result for saving, plotting, capillary-bed
+   histories, and metadata.
 
 ## Extension Points
 
 - Add new boundary types under `hemo1d.boundary`.
+- Add new outlet/coupling models under `hemo1d.lumped`.
 - Add new solver methods under `hemo1d.solvers.<method>` and expose a factory.
 - Keep shared formulas in `hemo1d.core.physics`; solver modules should not
   duplicate pressure laws, wave speeds, fluxes, or source terms.
